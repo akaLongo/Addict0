@@ -109,13 +109,36 @@
             color: #00b0ff;
             text-shadow: 0 0 5px rgba(0, 176, 255, 0.5);
             font-size: 16px;
-            pointer-events: none;
             text-align: right;
             background: rgba(18, 18, 18, 0.8);
             padding: 15px;
             border-radius: 10px;
             border: 1px solid rgba(0, 176, 255, 0.3);
             box-shadow: 0 0 15px rgba(0, 176, 255, 0.2);
+        }
+
+        #home-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(18, 18, 18, 0.9);
+            color: #00b0ff;
+            border: 2px solid #00b0ff;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(0, 176, 255, 0.2);
+        }
+
+        #home-button:hover {
+            background: #00b0ff;
+            color: #111;
+            box-shadow: 0 0 25px rgba(0, 176, 255, 0.4);
+            transform: scale(1.05);
         }
 
         #controls {
@@ -162,6 +185,7 @@
     </style>
 </head>
 <body>
+    <button id="home-button" onclick="window.location.href='index.html'">Home</button>
     <div id="gameOverlay">
         <div class="card">
             <h1 class="title">Addict 0</h1>
@@ -185,7 +209,6 @@
         <br>- Arrow Keys: Fly the plane
         <br>- W/S: Speed up/down
         <br>- Space: Shoot lasers
-        <br>- Shift: Activate turbo
         <br>- Hit balloons to score!
     </div>
     <script type="module">
@@ -209,7 +232,7 @@
                     logarithmicDepthBuffer: true
                 });
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.setClearColor(0x87CEEB);
+                this.renderer.setClearColor(0xb3e0ff);
                 this.renderer.shadowMap.enabled = true;
                 this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 document.body.appendChild(this.renderer.domElement);
@@ -227,41 +250,63 @@
             }
 
             setupLights() {
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+                // Increase ambient light intensity by 30%
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.52); // Increased from 0.4 to 0.52
                 this.scene.add(ambientLight);
 
-                this.sunLight = new THREE.DirectionalLight(0xffd500, 1.5);
+                // Increase sun light intensity by 30%
+                this.sunLight = new THREE.DirectionalLight(0xffd500, 1.95); // Increased from 1.5 to 1.95
                 this.sunLight.position.set(100, 100, 50);
                 this.sunLight.castShadow = true;
                 this.sunLight.shadow.mapSize.width = 2048;
                 this.sunLight.shadow.mapSize.height = 2048;
                 this.scene.add(this.sunLight);
 
-                // Add subtle blue hemisphere light for sky reflection
-                const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x639263, 0.6);
+                // Increase hemisphere light intensity by 30%
+                const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x639263, 0.78); // Increased from 0.6 to 0.78
                 this.scene.add(hemiLight);
+
+                // Add a secondary fill light for better overall illumination
+                const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+                fillLight.position.set(-50, 50, -50);
+                this.scene.add(fillLight);
             }
 
             createTerrain() {
-                // Create smaller, optimized terrain
-                const groundSize = 2000; // Reduced from 10000
-                const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize, 50, 50); // Reduced segments
+                // Increase renderer clear color brightness by 30%
+                this.renderer.setClearColor(0xb3e0ff); // Brighter sky blue color (increased from 0x87CEEB)
+                
+                // Create ground
+                const groundSize = 1400;
+                const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize, 100, 100);
                 
                 // Create optimized grass texture
-                const canvasSize = 64; // Increased for better texture quality
+                const canvasSize = 128;
                 const canvas = document.createElement('canvas');
                 canvas.width = canvasSize;
                 canvas.height = canvasSize;
                 const context = canvas.getContext('2d');
                 
-                // Draw optimized ground texture
-                context.fillStyle = '#567D46';
-                context.fillRect(0, 0, canvasSize, canvasSize);
+                // Draw improved ground texture with variation
+                const drawGrass = () => {
+                    const baseColor = '#567D46';
+                    const variationColors = ['#4A6B3C', '#628952', '#4E7340'];
+                    
+                    for (let x = 0; x < canvasSize; x += 4) {
+                        for (let y = 0; y < canvasSize; y += 4) {
+                            context.fillStyle = Math.random() < 0.8 ? baseColor : 
+                                variationColors[Math.floor(Math.random() * variationColors.length)];
+                            context.fillRect(x, y, 4, 4);
+                        }
+                    }
+                };
+                
+                drawGrass();
                 
                 const groundTexture = new THREE.CanvasTexture(canvas);
                 groundTexture.wrapS = THREE.RepeatWrapping;
                 groundTexture.wrapT = THREE.RepeatWrapping;
-                groundTexture.repeat.set(100, 100); // Reduced repeat for better performance
+                groundTexture.repeat.set(70, 70);
                 
                 const groundMaterial = new THREE.MeshLambertMaterial({
                     map: groundTexture,
@@ -273,10 +318,81 @@
                 ground.receiveShadow = true;
                 this.scene.add(ground);
 
-                // Create optimized mountains and trees
+                // Create runway
+                const runwayLength = 400;
+                const runwayWidth = 40;
+                const runwayGeometry = new THREE.PlaneGeometry(runwayWidth, runwayLength);
+                
+                // Create runway texture
+                const runwayCanvas = document.createElement('canvas');
+                runwayCanvas.width = 256;
+                runwayCanvas.height = 1024;
+                const runwayContext = runwayCanvas.getContext('2d');
+                
+                // Draw runway texture
+                runwayContext.fillStyle = '#333333';
+                runwayContext.fillRect(0, 0, 256, 1024);
+                
+                // Add center line stripes
+                runwayContext.fillStyle = '#FFFFFF';
+                for (let y = 0; y < 1024; y += 100) {
+                    runwayContext.fillRect(118, y, 20, 60);
+                }
+                
+                // Add edge lines
+                runwayContext.fillRect(0, 0, 10, 1024);
+                runwayContext.fillRect(246, 0, 10, 1024);
+                
+                const runwayTexture = new THREE.CanvasTexture(runwayCanvas);
+                runwayTexture.wrapS = THREE.RepeatWrapping;
+                runwayTexture.wrapT = THREE.RepeatWrapping;
+                
+                const runwayMaterial = new THREE.MeshLambertMaterial({
+                    map: runwayTexture,
+                    flatShading: true
+                });
+                
+                const runway = new THREE.Mesh(runwayGeometry, runwayMaterial);
+                runway.rotation.x = -Math.PI / 2;
+                runway.rotation.z = Math.PI / 2;
+                runway.position.y = 0.1; // Slightly above ground to prevent z-fighting
+                runway.receiveShadow = true;
+                this.scene.add(runway);
+
+                // Create optimized mountains
                 this.createVoxelMountains();
                 
-                // Create fewer clouds
+                // Add trees throughout the terrain
+                const treeBoundary = groundSize * 0.45;
+                const numberOfTrees = 200;
+                
+                // Create tree clusters throughout the terrain, avoiding runway area
+                for (let i = 0; i < numberOfTrees; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = Math.random() * treeBoundary;
+                    const x = Math.cos(angle) * radius;
+                    const z = Math.sin(angle) * radius;
+                    
+                    // Check if tree position is too close to runway
+                    const runwayBuffer = 30;
+                    if (Math.abs(x) < (runwayWidth/2 + runwayBuffer)) {
+                        continue; // Skip this tree if it's too close to runway
+                    }
+                    
+                    // Create clusters of 1-3 trees
+                    const clusterSize = Math.floor(Math.random() * 3) + 1;
+                    for (let j = 0; j < clusterSize; j++) {
+                        const offsetX = (Math.random() - 0.5) * 30;
+                        const offsetZ = (Math.random() - 0.5) * 30;
+                        this.createTree(
+                            x + offsetX,
+                            0,
+                            z + offsetZ
+                        );
+                    }
+                }
+                
+                // Create clouds
                 this.createPixelClouds();
             }
             
@@ -294,77 +410,75 @@
                     return block;
                 };
 
-                // Natural mountain colors
+                // Enhanced mountain colors with more variation
                 const colors = {
-                    snow: 0xFFFFFF,
-                    rock: 0x6B7280,
-                    darkRock: 0x4B5563,
-                    grass: 0x3B824A,
-                    dirt: 0x8B6D5C
+                    snow: [0xFFFFFF, 0xF0F0F0, 0xE8E8E8],
+                    rock: [0x6B7280, 0x5A6170, 0x7C8290],
+                    darkRock: [0x4B5563, 0x404B57, 0x566270],
+                    grass: [0x3B824A, 0x357A44, 0x419755],
+                    dirt: [0x8B6D5C, 0x7A5D4E, 0x9C7E6D]
                 };
                 
                 // Create smaller boundary mountains
-                const boundaryDistance = 800; // Reduced from 4000
+                const boundaryDistance = 1040;
                 const createMountainRange = (startX, startZ, length, direction) => {
                     const peaks = [];
-                    const segmentLength = 200; // Increased segment length for fewer mountains
+                    const segmentLength = 160;
                     const segments = Math.floor(length / segmentLength);
                     
-                    // Generate mountain peaks
+                    // Generate mountain peaks with reduced height
                     for (let i = 0; i < segments; i++) {
-                        const baseHeight = 150 + Math.random() * 200; // Reduced height
-                        const peakNoise = Math.sin(i * 0.5) * 50 + Math.random() * 50;
+                        const baseHeight = 40 + Math.random() * 30; // Significantly reduced height
+                        const peakNoise = Math.sin(i * 0.5) * 20 + Math.random() * 15; // Reduced variation
                         peaks.push(baseHeight + peakNoise);
                     }
                     
-                    // Smooth peaks
+                    // Enhanced peak smoothing
                     for (let i = 1; i < peaks.length - 1; i++) {
-                        peaks[i] = (peaks[i-1] + peaks[i] * 2 + peaks[i+1]) / 4;
+                        peaks[i] = (peaks[i-1] * 0.25 + peaks[i] * 0.5 + peaks[i+1] * 0.25);
                     }
                     
-                    // Create mountain geometry with fewer blocks
+                    // Create mountain geometry with more detail
                     for (let i = 0; i < segments; i++) {
                         const peakHeight = peaks[i];
                         const pos = direction === 'x' ? 
                             { x: startX + i * segmentLength, z: startZ } :
                             { x: startX, z: startZ + i * segmentLength };
                         
-                        // Create layers with larger steps
-                        for (let y = 0; y < peakHeight; y += 40) { // Increased step size
-                            const width = 100 - (y / peakHeight) * 50;
-                            const depth = 100 - (y / peakHeight) * 50;
+                        // Create layers with more variation
+                        for (let y = 0; y < peakHeight; y += 10) {
+                            const width = 80 - (y / peakHeight) * 40; // Reduced width
+                            const depth = 80 - (y / peakHeight) * 40; // Reduced depth
                             
-                            let color;
-                            if (y > peakHeight * 0.8) {
-                                color = colors.snow;
+                            // Select color with variation
+                            let colorArray;
+                            if (y > peakHeight * 0.85) {
+                                colorArray = colors.rock;
                             } else if (y > peakHeight * 0.6) {
-                                color = colors.rock;
+                                colorArray = colors.darkRock;
                             } else if (y > peakHeight * 0.3) {
-                                color = colors.darkRock;
+                                colorArray = colors.dirt;
                             } else {
-                                color = colors.dirt;
+                                colorArray = colors.grass;
                             }
                             
+                            const color = colorArray[Math.floor(Math.random() * colorArray.length)];
+                            
+                            // Add random offset for more natural look
+                            const offsetX = (Math.random() - 0.5) * 5;
+                            const offsetZ = (Math.random() - 0.5) * 5;
+                            
                             const block = createVoxelBlock(
-                                pos.x,
+                                pos.x + offsetX,
                                 y,
-                                pos.z,
-                                width,
-                                40, // Increased block height
-                                depth,
+                                pos.z + offsetZ,
+                                width * (0.9 + Math.random() * 0.2),
+                                10,
+                                depth * (0.9 + Math.random() * 0.2),
                                 color
                             );
                             
                             this.scene.add(block);
-                        }
-                        
-                        // Add fewer trees
-                        if (Math.random() < 0.2) { // Reduced tree frequency
-                            this.createTree(
-                                pos.x + (Math.random() - 0.5) * 100,
-                                0,
-                                pos.z + (Math.random() - 0.5) * 100
-                            );
                         }
                     }
                 };
@@ -374,40 +488,6 @@
                 createMountainRange(-boundaryDistance, boundaryDistance, boundaryDistance * 2, 'x');
                 createMountainRange(-boundaryDistance, -boundaryDistance, boundaryDistance * 2, 'z');
                 createMountainRange(boundaryDistance, -boundaryDistance, boundaryDistance * 2, 'z');
-                
-                // Add fewer scattered terrain features
-                for (let i = 0; i < 50; i++) { // Reduced from 200
-                    const x = (Math.random() - 0.5) * boundaryDistance * 1.5;
-                    const z = (Math.random() - 0.5) * boundaryDistance * 1.5;
-                    
-                    if (Math.abs(x) < 200 && Math.abs(z) < 200) continue;
-                    
-                    if (Math.random() < 0.5) { // Reduced probability
-                        const hillHeight = 20 + Math.random() * 30;
-                        for (let y = 0; y < hillHeight; y += 20) { // Increased step size
-                            const width = 80 - (y / hillHeight) * 40;
-                            const block = createVoxelBlock(
-                                x,
-                                y,
-                                z,
-                                width,
-                                20,
-                                width,
-                                y === 0 ? colors.grass : colors.dirt
-                            );
-                            this.scene.add(block);
-                        }
-                        
-                        // Add fewer trees around hills
-                        if (Math.random() < 0.3) {
-                            this.createTree(
-                                x + (Math.random() - 0.5) * 100,
-                                0,
-                                z + (Math.random() - 0.5) * 100
-                            );
-                        }
-                    }
-                }
             }
 
             createTree(x, y, z) {
@@ -471,24 +551,31 @@
             createPixelClouds() {
                 this.clouds = [];
                 
-                const createPixelCloud = () => {
+                const createPixelCloud = (isAdvertising = false) => {
                     const cloud = new THREE.Group();
                     const blockSize = 20;
+                    const vendor = isAdvertising ? this.getRandomVendor() : null;
                     
-                    // Simplified cloud pattern
-                    const cloudPattern = [
+                    // Cloud pattern - larger for ad clouds
+                    const cloudPattern = isAdvertising ? [
+                        [0,1,1,1,1,0],
+                        [1,1,1,1,1,1],
+                        [1,1,1,1,1,1],
+                        [0,1,1,1,1,0]
+                    ] : [
                         [0,1,1,0],
                         [1,1,1,1],
                         [0,1,1,0]
                     ];
                     
                     const cloudMaterial = new THREE.MeshLambertMaterial({
-                        color: 0xFFFFFF,
+                        color: isAdvertising ? vendor.color : 0xFFFFFF,
                         transparent: true,
                         opacity: 0.9,
                         flatShading: true
                     });
                     
+                    // Create cloud blocks
                     for (let y = 0; y < cloudPattern.length; y++) {
                         for (let x = 0; x < cloudPattern[y].length; x++) {
                             if (cloudPattern[y][x] === 1) {
@@ -497,8 +584,8 @@
                                     cloudMaterial
                                 );
                                 voxel.position.set(
-                                    (x - 2) * blockSize,
-                                    (y - 1) * blockSize * 0.5,
+                                    (x - cloudPattern[y].length/2) * blockSize,
+                                    (y - cloudPattern.length/2) * blockSize * 0.5,
                                     0
                                 );
                                 cloud.add(voxel);
@@ -506,16 +593,48 @@
                         }
                     }
                     
+                    // Add vendor text if it's an advertising cloud
+                    if (isAdvertising) {
+                        const textGeometry = new THREE.PlaneGeometry(blockSize * 4, blockSize);
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.width = 256;
+                        canvas.height = 64;
+                        context.fillStyle = vendor.textColor;
+                        context.font = 'bold 32px Orbitron';
+                        context.textAlign = 'center';
+                        context.textBaseline = 'middle';
+                        context.fillText(vendor.name, canvas.width/2, canvas.height/2);
+                        
+                        const textTexture = new THREE.CanvasTexture(canvas);
+                        const textMaterial = new THREE.MeshBasicMaterial({
+                            map: textTexture,
+                            transparent: true,
+                            side: THREE.DoubleSide
+                        });
+                        
+                        // Add text on both sides of the cloud
+                        const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                        textMesh.position.set(0, 0, blockSize * 2);
+                        cloud.add(textMesh);
+                        
+                        const textMeshBack = textMesh.clone();
+                        textMeshBack.position.z = -blockSize * 2;
+                        textMeshBack.rotation.y = Math.PI;
+                        cloud.add(textMeshBack);
+                    }
+                    
                     return cloud;
                 };
                 
-                // Create fewer clouds
-                for (let i = 0; i < 20; i++) { // Reduced from 40
-                    const cloud = createPixelCloud();
+                // Create a mix of regular and advertising clouds
+                for (let i = 0; i < 30; i++) {
+                    const isAdvertising = i < 10; // First 10 clouds are ads
+                    const cloud = createPixelCloud(isAdvertising);
                     cloud.position.set(
-                        (Math.random() - 0.5) * 1600, // Reduced range
-                        200 + Math.random() * 200,
-                        (Math.random() - 0.5) * 1600
+                        (Math.random() - 0.5) * 800,
+                        300 + Math.random() * 400, // Higher altitude for better visibility
+                        (Math.random() - 0.5) * 800
                     );
                     this.clouds.push(cloud);
                     this.scene.add(cloud);
@@ -573,8 +692,8 @@
                 // Set up the plane
                 this.plane = planeGroup;
                 
-                // No need for Y rotation now that we've built it facing forward
-                this.plane.rotation.y = 0;
+                // Set initial Y rotation to 90 degrees (π/2 radians)
+                this.plane.rotation.y = Math.PI / 2;
                 
                 this.plane.position.set(0, 10, 0);
                 this.scene.add(this.plane);
@@ -586,12 +705,16 @@
 
             createBalloons() {
                 this.balloons = [];
-                for (let i = 0; i < 5; i++) { // Reduced from 10
+                const balloonCount = 27; // Increased from 7 to 27
+                for (let i = 0; i < balloonCount; i++) {
                     const balloon = this.createBalloon();
+                    // Spread balloons over area with better distribution
+                    const angle = (i / balloonCount) * Math.PI * 2; // Distribute in a circular pattern
+                    const radius = Math.random() * 280 + 140; // Random radius between 140 and 420 units
                     balloon.position.set(
-                        (Math.random() - 0.5) * 800, // Reduced range
-                        100 + Math.random() * 200,
-                        (Math.random() - 0.5) * 800
+                        Math.cos(angle) * radius, // X position
+                        100 + Math.random() * 300, // Y position (height)
+                        Math.sin(angle) * radius  // Z position
                     );
                     this.scene.add(balloon);
                     this.balloons.push(balloon);
@@ -599,45 +722,99 @@
             }
 
             createBalloon() {
-                // Create Minecraft-style balloon (cube)
+                // Create Minecraft-style balloon (cube) - 20% larger
                 const balloon = new THREE.Group();
+                
+                // Get random vendor
+                const vendor = this.getRandomVendor();
 
-                // Balloon part (cube)
-                const balloonGeometry = new THREE.BoxGeometry(10, 10, 10);
+                // Balloon part (cube) - increased size by 20%
+                const balloonGeometry = new THREE.BoxGeometry(12, 12, 12); // Increased from 10 to 12
                 const balloonMaterial = new THREE.MeshLambertMaterial({
-                    color: Math.random() > 0.5 ? 0xff0000 : 0x00ff00, // Red or green
+                    color: vendor.color,
                     flatShading: true
                 });
                 const balloonCube = new THREE.Mesh(balloonGeometry, balloonMaterial);
                 balloon.add(balloonCube);
 
-                // Basket (small cube)
-                const basketGeometry = new THREE.BoxGeometry(4, 4, 4);
+                // Add vendor text to balloon - increased size proportionally
+                const textGeometry = new THREE.PlaneGeometry(14.4, 3.6); // Increased from 12,3 to 14.4,3.6
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = 256;
+                canvas.height = 64;
+                context.fillStyle = vendor.textColor;
+                context.font = 'bold 32px Orbitron';
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillText(vendor.name, canvas.width/2, canvas.height/2);
+                
+                const textTexture = new THREE.CanvasTexture(canvas);
+                const textMaterial = new THREE.MeshBasicMaterial({
+                    map: textTexture,
+                    transparent: true,
+                    side: THREE.DoubleSide
+                });
+                
+                const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                textMesh.position.set(0, 0, 6.1); // Adjusted for new size
+                balloon.add(textMesh);
+
+                // Mirror text on other side
+                const textMeshBack = textMesh.clone();
+                textMeshBack.position.z = -6.1; // Adjusted for new size
+                textMeshBack.rotation.y = Math.PI;
+                balloon.add(textMeshBack);
+
+                // Basket (small cube) - increased proportionally
+                const basketGeometry = new THREE.BoxGeometry(4.8, 4.8, 4.8); // Increased from 4 to 4.8
                 const basketMaterial = new THREE.MeshLambertMaterial({ 
                     color: 0x8B4513,
                     flatShading: true 
                 });
                 const basket = new THREE.Mesh(basketGeometry, basketMaterial);
-                basket.position.y = -10;
+                basket.position.y = -12; // Adjusted for new size
                 balloon.add(basket);
 
-                // Ropes (thin blocks)
-                const ropeGeometry = new THREE.BoxGeometry(0.5, 6, 0.5);
+                // Ropes (thin blocks) - adjusted for new size
+                const ropeGeometry = new THREE.BoxGeometry(0.6, 7.2, 0.6); // Increased proportionally
                 const ropeMaterial = new THREE.MeshLambertMaterial({ 
                     color: 0x8B4513,
                     flatShading: true 
                 });
                 
-                // Add four ropes at corners
+                // Add four ropes at corners - adjusted positions
                 for (let x = -1; x <= 1; x += 2) {
                     for (let z = -1; z <= 1; z += 2) {
                         const rope = new THREE.Mesh(ropeGeometry, ropeMaterial);
-                        rope.position.set(x * 2, -7, z * 2);
+                        rope.position.set(x * 2.4, -8.4, z * 2.4); // Adjusted for new size
                         balloon.add(rope);
                     }
                 }
 
+                // Add collision box for better hit detection
+                const hitboxGeometry = new THREE.BoxGeometry(14, 14, 14); // Slightly larger than balloon for better hit detection
+                const hitboxMaterial = new THREE.MeshBasicMaterial({
+                    visible: false // Invisible hitbox
+                });
+                const hitbox = new THREE.Mesh(hitboxGeometry, hitboxMaterial);
+                hitbox.name = 'hitbox';
+                balloon.add(hitbox);
+
+                balloon.vendor = vendor; // Store vendor info
                 return balloon;
+            }
+
+            // Add vendor management
+            getRandomVendor() {
+                const vendors = [
+                    { name: 'TechCorp', color: 0xFF4081, textColor: '#FFFFFF' },
+                    { name: 'GameFuel', color: 0x00BCD4, textColor: '#FFFFFF' },
+                    { name: 'PixelPlay', color: 0x4CAF50, textColor: '#FFFFFF' },
+                    { name: 'ByteBurst', color: 0xFFC107, textColor: '#000000' },
+                    { name: 'CodeCola', color: 0x9C27B0, textColor: '#FFFFFF' }
+                ];
+                return vendors[Math.floor(Math.random() * vendors.length)];
             }
 
             setupControls() {
@@ -873,48 +1050,53 @@
                         continue;
                     }
                     
-                    // Check collision with balloons
+                    // Check collision with balloons using raycaster
+                    const raycaster = new THREE.Raycaster();
+                    raycaster.ray.origin.copy(bullet.mesh.position);
+                    raycaster.ray.direction.copy(bullet.direction);
+                    
+                    // Check each balloon for collision
                     for (let j = this.balloons.length - 1; j >= 0; j--) {
                         const balloon = this.balloons[j];
-                        const distance = bullet.mesh.position.distanceTo(balloon.position);
+                        const hitbox = balloon.children.find(child => child.name === 'hitbox');
                         
-                        if (distance < 7) { // Hit detection radius
-                            // Create explosion
-                            this.createExplosion(balloon.position);
+                        if (hitbox) {
+                            const balloonBox = new THREE.Box3().setFromObject(hitbox);
+                            const bulletBox = new THREE.Box3().setFromObject(bullet.mesh);
                             
-                            // Remove bullet and balloon
-                            this.scene.remove(bullet.mesh);
-                            this.bullets.splice(i, 1);
-                            this.scene.remove(balloon);
-                            this.balloons.splice(j, 1);
-                            
-                            // Update score and balloons hit
-                            this.balloonsHit++;
-                            // Score formula: base points (100) + speed bonus + time bonus
-                            const speedBonus = Math.round(this.speed * 20);
-                            const timeBonus = Math.round(this.gameTime * 2);
-                            const points = 100 + speedBonus + timeBonus;
-                            this.score += points;
-                            
-                            // Update displays
-                            document.getElementById('score').textContent = this.score;
-                            document.getElementById('balloons-hit').textContent = this.balloonsHit;
-                            
-                            // Create new balloon
-                            setTimeout(() => {
-                                if (this.isGameActive) {
-                                    const newBalloon = this.createBalloon();
-                                    newBalloon.position.set(
-                                        (Math.random() - 0.5) * 2000,
-                                        100 + Math.random() * 300,
-                                        (Math.random() - 0.5) * 2000
-                                    );
-                                    this.scene.add(newBalloon);
-                                    this.balloons.push(newBalloon);
-                                }
-                            }, 3000);
-                            
-                            break;
+                            if (balloonBox.intersectsBox(bulletBox)) {
+                                // Remove bullet
+                                this.scene.remove(bullet.mesh);
+                                this.bullets.splice(i, 1);
+                                
+                                // Create explosion effect
+                                this.createExplosion(balloon.position.clone());
+                                
+                                // Remove balloon
+                                this.scene.remove(balloon);
+                                this.balloons.splice(j, 1);
+                                
+                                // Update score
+                                this.score += 1;
+                                this.balloonsHit++;
+                                document.getElementById('score').textContent = this.score;
+                                
+                                // Create new balloon after delay
+                                setTimeout(() => {
+                                    if (this.isGameActive) {
+                                        const newBalloon = this.createBalloon();
+                                        newBalloon.position.set(
+                                            (Math.random() - 0.5) * 2000,
+                                            100 + Math.random() * 300,
+                                            (Math.random() - 0.5) * 2000
+                                        );
+                                        this.scene.add(newBalloon);
+                                        this.balloons.push(newBalloon);
+                                    }
+                                }, 3000);
+                                
+                                break;
+                            }
                         }
                     }
                 }
@@ -1213,12 +1395,16 @@
                 this.updatePlane();
                 this.updateBullets();
 
-                // Optimize cloud animation
+                // Optimize cloud animation with reduced boundaries
                 const time = performance.now() * 0.001;
                 this.clouds.forEach((cloud, index) => {
                     cloud.position.x += 0.2;
-                    if (cloud.position.x > 800) { // Reduced range
-                        cloud.position.x = -800;
+                    if (cloud.position.x > 400) { // Decreased from 800
+                        cloud.position.x = -400; // Decreased from -800
+                    }
+                    // Make advertising clouds rotate slowly to face player
+                    if (cloud.children.length > 4) {
+                        cloud.lookAt(this.camera.position);
                     }
                 });
 

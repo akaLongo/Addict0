@@ -222,9 +222,14 @@
         };
 
         let pipes = [];
-        const PIPE_WIDTH = 80;
-        const PIPE_GAP = 200;
-        const PIPE_SPEED = 3;
+        const INITIAL_PIPE_WIDTH = 80;
+        const INITIAL_PIPE_GAP = 250; // Increased initial gap for easier start
+        const INITIAL_PIPE_SPEED = 2; // Slower initial speed
+        const MIN_PIPE_GAP = 160; // Minimum gap size
+        const MAX_PIPE_SPEED = 5; // Maximum speed
+        let currentPipeGap = INITIAL_PIPE_GAP;
+        let currentPipeSpeed = INITIAL_PIPE_SPEED;
+        let pipeSpawnDistance = 300; // Initial spawn distance between pipes
         let score = 0;
         let highScore = localStorage.getItem('flappyHighScore') || 0;
         let gameActive = false;
@@ -268,6 +273,11 @@
             pipes = [];
             bird.y = canvas.height / 2;
             bird.velocity = 0;
+            // Reset difficulty settings to initial values
+            currentPipeGap = INITIAL_PIPE_GAP;
+            currentPipeSpeed = INITIAL_PIPE_SPEED;
+            pipeSpawnDistance = 300;
+            bird.gravity = 0.5;
             document.getElementById('score').textContent = score;
             animate();
         }
@@ -284,6 +294,11 @@
             pipes = [];
             bird.y = canvas.height / 2;
             bird.velocity = 0;
+            // Reset difficulty settings to initial values
+            currentPipeGap = INITIAL_PIPE_GAP;
+            currentPipeSpeed = INITIAL_PIPE_SPEED;
+            pipeSpawnDistance = 300;
+            bird.gravity = 0.5;
             document.getElementById('score').textContent = score;
             animate();
         }
@@ -294,12 +309,111 @@
             }
         }
 
+        function updateDifficulty() {
+            // Gradually decrease pipe gap based on score
+            currentPipeGap = Math.max(
+                MIN_PIPE_GAP,
+                INITIAL_PIPE_GAP - (score * 5)
+            );
+            
+            // Gradually increase speed based on score
+            currentPipeSpeed = Math.min(
+                MAX_PIPE_SPEED,
+                INITIAL_PIPE_SPEED + (score * 0.1)
+            );
+            
+            // Decrease spawn distance between pipes based on score
+            pipeSpawnDistance = Math.max(
+                200, // Minimum distance between pipes
+                300 - (score * 2)
+            );
+            
+            // Adjust gravity based on score
+            bird.gravity = Math.min(0.8, 0.5 + (score * 0.01));
+        }
+
         function createPipe() {
-            const gapPosition = Math.random() * (canvas.height - PIPE_GAP - 100) + 50;
+            // Calculate difficulty settings for this specific pipe
+            const pipeGap = Math.max(
+                MIN_PIPE_GAP,
+                INITIAL_PIPE_GAP - (score * 5)
+            );
+            
+            const pipeSpeed = Math.min(
+                MAX_PIPE_SPEED,
+                INITIAL_PIPE_SPEED + (score * 0.1)
+            );
+
+            // Ensure minimum safe gap at top and bottom
+            const minTopPosition = 50;
+            const maxBottomPosition = canvas.height - 50;
+            const safeRange = maxBottomPosition - minTopPosition - pipeGap;
+            
+            const gapPosition = minTopPosition + (Math.random() * safeRange);
             pipes.push({
                 x: canvas.width,
                 gapY: gapPosition,
-                passed: false
+                passed: false,
+                vendor: getRandomVendor(),
+                // Store difficulty settings with the pipe
+                pipeGap: pipeGap,
+                speed: pipeSpeed
+            });
+        }
+
+        // Add vendor management system
+        const vendors = [
+            { name: 'TechCorp', color: '#FF4081', textColor: '#FFFFFF' },
+            { name: 'GameFuel', color: '#00BCD4', textColor: '#FFFFFF' },
+            { name: 'PixelPlay', color: '#4CAF50', textColor: '#FFFFFF' },
+            { name: 'ByteBurst', color: '#FFC107', textColor: '#000000' },
+            { name: 'CodeCola', color: '#9C27B0', textColor: '#FFFFFF' }
+        ];
+
+        function getRandomVendor() {
+            return vendors[Math.floor(Math.random() * vendors.length)];
+        }
+
+        // Background sign system
+        let backgroundSigns = [];
+        const SIGN_INTERVAL = 10000; // 10 seconds
+        let lastSignTime = 0;
+
+        function createBackgroundSign() {
+            const vendor = getRandomVendor();
+            const sign = {
+                x: canvas.width,
+                y: Math.random() * (canvas.height - 100) + 50,
+                vendor: vendor,
+                width: 200,
+                height: 60
+            };
+            backgroundSigns.push(sign);
+        }
+
+        function drawBackgroundSigns() {
+            const currentTime = Date.now();
+            if (currentTime - lastSignTime > SIGN_INTERVAL) {
+                createBackgroundSign();
+                lastSignTime = currentTime;
+            }
+
+            backgroundSigns = backgroundSigns.filter(sign => sign.x + sign.width > 0);
+            
+            backgroundSigns.forEach(sign => {
+                // Draw sign background
+                ctx.fillStyle = sign.vendor.color;
+                ctx.fillRect(sign.x, sign.y, sign.width, sign.height);
+                
+                // Draw vendor name
+                ctx.fillStyle = sign.vendor.textColor;
+                ctx.font = '20px Orbitron';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(sign.vendor.name, sign.x + sign.width/2, sign.y + sign.height/2);
+                
+                // Move sign - use currentPipeSpeed instead of PIPE_SPEED
+                sign.x -= currentPipeSpeed * 0.5; // Move slower than pipes
             });
         }
 
@@ -326,26 +440,86 @@
 
         function drawPipes() {
             pipes.forEach(pipe => {
-                // Top pipe
-                ctx.fillStyle = '#00b0ff';
-                ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.gapY);
+                const vendor = pipe.vendor;
                 
-                // Bottom pipe
-                ctx.fillRect(pipe.x, pipe.gapY + PIPE_GAP, PIPE_WIDTH, canvas.height - (pipe.gapY + PIPE_GAP));
+                // Top pipe with vendor branding
+                ctx.fillStyle = vendor.color;
+                ctx.fillRect(pipe.x, 0, INITIAL_PIPE_WIDTH, pipe.gapY);
+                
+                // Bottom pipe with vendor branding
+                ctx.fillRect(pipe.x, pipe.gapY + pipe.pipeGap, INITIAL_PIPE_WIDTH, canvas.height - (pipe.gapY + pipe.pipeGap));
+                
+                // Calculate appropriate text size based on pipe dimensions
+                const topPipeHeight = pipe.gapY;
+                const bottomPipeHeight = canvas.height - (pipe.gapY + pipe.pipeGap);
+                
+                // Dynamic font size calculation - more conservative
+                const maxTextWidth = INITIAL_PIPE_WIDTH * 0.8; // 80% of pipe width
+                const fontSize = Math.min(
+                    20, // Maximum font size
+                    Math.floor(INITIAL_PIPE_WIDTH * 0.4), // 40% of pipe width
+                    Math.floor(Math.min(topPipeHeight, bottomPipeHeight) * 0.3) // 30% of pipe height
+                );
+                
+                // Add vendor name to pipes with calculated text size
+                ctx.fillStyle = vendor.textColor;
+                ctx.font = `bold ${fontSize}px Orbitron`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Function to draw text with glow
+                const drawPipeText = (x, y, rotation) => {
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(rotation);
+                    
+                    // Add glow effect
+                    ctx.shadowColor = vendor.color;
+                    ctx.shadowBlur = 5;
+                    ctx.fillText(vendor.name, 0, 0);
+                    
+                    ctx.restore();
+                };
+                
+                // Draw text on top pipe if height is sufficient
+                if (topPipeHeight > fontSize * 2) { // Ensure minimum height
+                    const topTextY = Math.min(
+                        pipe.gapY/2, // Center of pipe
+                        topPipeHeight - fontSize * 1.2 // Keep safe distance from edge
+                    );
+                    drawPipeText(
+                        pipe.x + INITIAL_PIPE_WIDTH/2,
+                        topTextY,
+                        -Math.PI/2
+                    );
+                }
+                
+                // Draw text on bottom pipe if height is sufficient
+                if (bottomPipeHeight > fontSize * 2) { // Ensure minimum height
+                    const bottomTextY = pipe.gapY + pipe.pipeGap + Math.min(
+                        bottomPipeHeight/2, // Center of pipe
+                        bottomPipeHeight - fontSize * 1.2 // Keep safe distance from edge
+                    );
+                    drawPipeText(
+                        pipe.x + INITIAL_PIPE_WIDTH/2,
+                        bottomTextY,
+                        -Math.PI/2
+                    );
+                }
                 
                 // Pipe borders
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 2;
-                ctx.strokeRect(pipe.x, 0, PIPE_WIDTH, pipe.gapY);
-                ctx.strokeRect(pipe.x, pipe.gapY + PIPE_GAP, PIPE_WIDTH, canvas.height - (pipe.gapY + PIPE_GAP));
+                ctx.strokeRect(pipe.x, 0, INITIAL_PIPE_WIDTH, pipe.gapY);
+                ctx.strokeRect(pipe.x, pipe.gapY + pipe.pipeGap, INITIAL_PIPE_WIDTH, canvas.height - (pipe.gapY + pipe.pipeGap));
             });
         }
 
         function checkCollision() {
             return pipes.some(pipe => {
                 // Check if bird hits pipes
-                if (bird.x + bird.radius > pipe.x && bird.x - bird.radius < pipe.x + PIPE_WIDTH) {
-                    if (bird.y - bird.radius < pipe.gapY || bird.y + bird.radius > pipe.gapY + PIPE_GAP) {
+                if (bird.x + bird.radius > pipe.x && bird.x - bird.radius < pipe.x + INITIAL_PIPE_WIDTH) {
+                    if (bird.y - bird.radius < pipe.gapY || bird.y + bird.radius > pipe.gapY + pipe.pipeGap) {
                         return true;
                     }
                 }
@@ -355,7 +529,7 @@
 
         function updateScore() {
             pipes.forEach(pipe => {
-                if (!pipe.passed && bird.x > pipe.x + PIPE_WIDTH) {
+                if (!pipe.passed && bird.x > pipe.x + INITIAL_PIPE_WIDTH) {
                     score++;
                     pipe.passed = true;
                     document.getElementById('score').textContent = score;
@@ -400,20 +574,23 @@
             ctx.fillStyle = 'rgba(26, 35, 126, 0.2)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+            // Draw background signs first
+            drawBackgroundSigns();
+
             // Update bird position
             bird.velocity += bird.gravity;
             bird.y += bird.velocity;
 
-            // Generate pipes
-            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 300) {
+            // Generate pipes with dynamic spawn distance
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - pipeSpawnDistance) {
                 createPipe();
             }
 
-            // Update pipes
+            // Update pipes with their individual speeds
             pipes.forEach(pipe => {
-                pipe.x -= PIPE_SPEED;
+                pipe.x -= pipe.speed;
             });
-            pipes = pipes.filter(pipe => pipe.x + PIPE_WIDTH > 0);
+            pipes = pipes.filter(pipe => pipe.x + INITIAL_PIPE_WIDTH > 0);
 
             // Draw game elements
             drawPipes();
