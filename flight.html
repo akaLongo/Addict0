@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Addict 0 - Retro Flight Combat</title>
+    <script async src="https://unpkg.com/es-module-shims/dist/es-module-shims.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+        }
+    }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(135deg, #1a237e 0%, #7c4dff 100%);
+        }
+
+        #gameOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(26, 35, 126, 0.9) 0%, rgba(124, 77, 255, 0.9) 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .card {
+            background: rgba(18, 18, 18, 0.95);
+            border: 2px solid #00b0ff;
+            border-radius: 15px;
+            padding: 40px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 0 20px rgba(0, 176, 255, 0.3);
+            text-align: center;
+            animation: cardGlow 2s infinite alternate;
+        }
+
+        @keyframes cardGlow {
+            from { box-shadow: 0 0 20px rgba(0, 176, 255, 0.3); }
+            to { box-shadow: 0 0 30px rgba(0, 176, 255, 0.5); }
+        }
+
+        .title {
+            color: #fff;
+            font-size: 48px;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px rgba(0, 176, 255, 0.5);
+        }
+
+        .subtitle {
+            color: #00b0ff;
+            font-size: 24px;
+            margin: 10px 0 20px;
+        }
+
+        .description {
+            color: #bbb;
+            font-size: 18px;
+            margin: 20px 0;
+        }
+
+        .rating {
+            color: #ffd700;
+            font-size: 30px;
+            margin: 20px 0;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .start-btn {
+            background: #00b0ff;
+            color: #fff;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            box-shadow: 0 0 15px rgba(0, 176, 255, 0.4);
+        }
+
+        .start-btn:hover {
+            background: #0091ea;
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(0, 176, 255, 0.6);
+        }
+
+        #hud {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: #00b0ff;
+            text-shadow: 0 0 5px rgba(0, 176, 255, 0.5);
+            font-size: 16px;
+            pointer-events: none;
+            text-align: right;
+            background: rgba(18, 18, 18, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 176, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 176, 255, 0.2);
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: #fff;
+            font-size: 14px;
+            pointer-events: none;
+            text-align: right;
+            background: rgba(18, 18, 18, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 176, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 176, 255, 0.2);
+        }
+
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(18, 18, 18, 0.95);
+            color: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            border: 2px solid #00b0ff;
+            box-shadow: 0 0 30px rgba(0, 176, 255, 0.4);
+        }
+
+        .game-over h2 {
+            color: #00b0ff;
+            font-size: 36px;
+            margin: 0 0 20px;
+            text-transform: uppercase;
+        }
+
+        .game-over p {
+            color: #fff;
+            font-size: 20px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameOverlay">
+        <div class="card">
+            <h1 class="title">Addict 0</h1>
+            <h2 class="subtitle">Retro Flight Combat</h2>
+            <p class="description">Take to the skies in this retro-inspired flight combat game! Shoot down balloons, earn points, and become the ultimate pilot!</p>
+            <div class="rating">★★★</div>
+            <button class="start-btn" onclick="this.parentElement.parentElement.style.display='none'">Start Playing</button>
+        </div>
+    </div>
+    <div id="hud">
+        <div>Time Remaining: <span id="timer">60</span>s</div>
+        <div>Current Score: <span id="score">0</span></div>
+        <div>High Score: <span id="highscore">0</span></div>
+        <div>Balloons Hit: <span id="balloons-hit">0</span></div>
+        <div>Health: <span id="health">100%</span></div>
+        <div>Altitude: <span id="altitude">0</span> ft</div>
+        <div>Speed: <span id="speed">0</span> kts</div>
+    </div>
+    <div id="controls">
+        Controls:
+        <br>- Arrow Keys: Fly the plane
+        <br>- W/S: Speed up/down
+        <br>- Space: Shoot lasers
+        <br>- Shift: Activate turbo
+        <br>- Hit balloons to score!
+    </div>
+    <script type="module">
+        import * as THREE from 'three';
+
+        class Game {
+            constructor() {
+                // Check if user is logged in
+                const currentUser = localStorage.getItem('current_user');
+                if (!currentUser) {
+                    alert('Please log in to play!');
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // Initialize game
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+                this.renderer = new THREE.WebGLRenderer({ 
+                    antialias: true,
+                    logarithmicDepthBuffer: true
+                });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setClearColor(0x87CEEB);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                document.body.appendChild(this.renderer.domElement);
+
+                this.clouds = [];
+                this.setupLights();
+                this.createTerrain();
+                this.createPlane();
+                this.createBalloons();
+                this.setupControls();
+
+                this.animate();
+
+                window.addEventListener('resize', () => this.onWindowResize());
+            }
+
+            setupLights() {
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+                this.scene.add(ambientLight);
+
+                this.sunLight = new THREE.DirectionalLight(0xffd500, 1.5);
+                this.sunLight.position.set(100, 100, 50);
+                this.sunLight.castShadow = true;
+                this.sunLight.shadow.mapSize.width = 2048;
+                this.sunLight.shadow.mapSize.height = 2048;
+                this.scene.add(this.sunLight);
+
+                // Add subtle blue hemisphere light for sky reflection
+                const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x639263, 0.6);
+                this.scene.add(hemiLight);
+            }
+
+            createTerrain() {
+                // Create smaller, optimized terrain
+                const groundSize = 2000; // Reduced from 10000
+                const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize, 50, 50); // Reduced segments
+                
+                // Create optimized grass texture
+                const canvasSize = 64; // Increased for better texture quality
+                const canvas = document.createElement('canvas');
+                canvas.width = canvasSize;
+                canvas.height = canvasSize;
+                const context = canvas.getContext('2d');
+                
+                // Draw optimized ground texture
+                context.fillStyle = '#567D46';
+                context.fillRect(0, 0, canvasSize, canvasSize);
+                
+                const groundTexture = new THREE.CanvasTexture(canvas);
+                groundTexture.wrapS = THREE.RepeatWrapping;
+                groundTexture.wrapT = THREE.RepeatWrapping;
+                groundTexture.repeat.set(100, 100); // Reduced repeat for better performance
+                
+                const groundMaterial = new THREE.MeshLambertMaterial({
+                    map: groundTexture,
+                    flatShading: true
+                });
+                
+                const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                ground.rotation.x = -Math.PI / 2;
+                ground.receiveShadow = true;
+                this.scene.add(ground);
+
+                // Create optimized mountains and trees
+                this.createVoxelMountains();
+                
+                // Create fewer clouds
+                this.createPixelClouds();
+            }
+            
+            createVoxelMountains() {
+                const createVoxelBlock = (x, y, z, width, height, depth, colorHex) => {
+                    const geometry = new THREE.BoxGeometry(width, height, depth);
+                    const material = new THREE.MeshLambertMaterial({ 
+                        color: colorHex,
+                        flatShading: true
+                    });
+                    const block = new THREE.Mesh(geometry, material);
+                    block.position.set(x, y, z);
+                    block.castShadow = true;
+                    block.receiveShadow = true;
+                    return block;
+                };
+
+                // Natural mountain colors
+                const colors = {
+                    snow: 0xFFFFFF,
+                    rock: 0x6B7280,
+                    darkRock: 0x4B5563,
+                    grass: 0x3B824A,
+                    dirt: 0x8B6D5C
+                };
+                
+                // Create smaller boundary mountains
+                const boundaryDistance = 800; // Reduced from 4000
+                const createMountainRange = (startX, startZ, length, direction) => {
+                    const peaks = [];
+                    const segmentLength = 200; // Increased segment length for fewer mountains
+                    const segments = Math.floor(length / segmentLength);
+                    
+                    // Generate mountain peaks
+                    for (let i = 0; i < segments; i++) {
+                        const baseHeight = 150 + Math.random() * 200; // Reduced height
+                        const peakNoise = Math.sin(i * 0.5) * 50 + Math.random() * 50;
+                        peaks.push(baseHeight + peakNoise);
+                    }
+                    
+                    // Smooth peaks
+                    for (let i = 1; i < peaks.length - 1; i++) {
+                        peaks[i] = (peaks[i-1] + peaks[i] * 2 + peaks[i+1]) / 4;
+                    }
+                    
+                    // Create mountain geometry with fewer blocks
+                    for (let i = 0; i < segments; i++) {
+                        const peakHeight = peaks[i];
+                        const pos = direction === 'x' ? 
+                            { x: startX + i * segmentLength, z: startZ } :
+                            { x: startX, z: startZ + i * segmentLength };
+                        
+                        // Create layers with larger steps
+                        for (let y = 0; y < peakHeight; y += 40) { // Increased step size
+                            const width = 100 - (y / peakHeight) * 50;
+                            const depth = 100 - (y / peakHeight) * 50;
+                            
+                            let color;
+                            if (y > peakHeight * 0.8) {
+                                color = colors.snow;
+                            } else if (y > peakHeight * 0.6) {
+                                color = colors.rock;
+                            } else if (y > peakHeight * 0.3) {
+                                color = colors.darkRock;
+                            } else {
+                                color = colors.dirt;
+                            }
+                            
+                            const block = createVoxelBlock(
+                                pos.x,
+                                y,
+                                pos.z,
+                                width,
+                                40, // Increased block height
+                                depth,
+                                color
+                            );
+                            
+                            this.scene.add(block);
+                        }
+                        
+                        // Add fewer trees
+                        if (Math.random() < 0.2) { // Reduced tree frequency
+                            this.createTree(
+                                pos.x + (Math.random() - 0.5) * 100,
+                                0,
+                                pos.z + (Math.random() - 0.5) * 100
+                            );
+                        }
+                    }
+                };
+                
+                // Create mountain ranges on all four boundaries
+                createMountainRange(-boundaryDistance, -boundaryDistance, boundaryDistance * 2, 'x');
+                createMountainRange(-boundaryDistance, boundaryDistance, boundaryDistance * 2, 'x');
+                createMountainRange(-boundaryDistance, -boundaryDistance, boundaryDistance * 2, 'z');
+                createMountainRange(boundaryDistance, -boundaryDistance, boundaryDistance * 2, 'z');
+                
+                // Add fewer scattered terrain features
+                for (let i = 0; i < 50; i++) { // Reduced from 200
+                    const x = (Math.random() - 0.5) * boundaryDistance * 1.5;
+                    const z = (Math.random() - 0.5) * boundaryDistance * 1.5;
+                    
+                    if (Math.abs(x) < 200 && Math.abs(z) < 200) continue;
+                    
+                    if (Math.random() < 0.5) { // Reduced probability
+                        const hillHeight = 20 + Math.random() * 30;
+                        for (let y = 0; y < hillHeight; y += 20) { // Increased step size
+                            const width = 80 - (y / hillHeight) * 40;
+                            const block = createVoxelBlock(
+                                x,
+                                y,
+                                z,
+                                width,
+                                20,
+                                width,
+                                y === 0 ? colors.grass : colors.dirt
+                            );
+                            this.scene.add(block);
+                        }
+                        
+                        // Add fewer trees around hills
+                        if (Math.random() < 0.3) {
+                            this.createTree(
+                                x + (Math.random() - 0.5) * 100,
+                                0,
+                                z + (Math.random() - 0.5) * 100
+                            );
+                        }
+                    }
+                }
+            }
+
+            createTree(x, y, z) {
+                const treeGroup = new THREE.Group();
+                
+                // Tree colors
+                const colors = {
+                    trunk: 0x4A3728,
+                    darkLeaves: 0x1F4A25,
+                    midLeaves: 0x2D682F,
+                    lightLeaves: 0x3B824A
+                };
+                
+                // Create trunk
+                const trunkHeight = 20 + Math.random() * 20;
+                for (let i = 0; i < trunkHeight; i += 5) {
+                    const width = 4 - (i / trunkHeight) * 1.5;
+                    const trunk = new THREE.Mesh(
+                        new THREE.BoxGeometry(width, 5, width),
+                        new THREE.MeshLambertMaterial({ color: colors.trunk })
+                    );
+                    trunk.position.set(0, y + i, 0);
+                    trunk.castShadow = true;
+                    trunk.receiveShadow = true;
+                    treeGroup.add(trunk);
+                }
+                
+                // Create foliage layers
+                const createFoliageLayer = (height, size, color) => {
+                    const layer = new THREE.Mesh(
+                        new THREE.BoxGeometry(size, size * 0.7, size),
+                        new THREE.MeshLambertMaterial({ color: color })
+                    );
+                    layer.position.set(
+                        (Math.random() - 0.5) * 2,
+                        height,
+                        (Math.random() - 0.5) * 2
+                    );
+                    layer.rotation.y = Math.random() * Math.PI * 0.25;
+                    layer.castShadow = true;
+                    layer.receiveShadow = true;
+                    treeGroup.add(layer);
+                };
+                
+                // Add foliage layers
+                const baseHeight = trunkHeight * 0.6;
+                const layerCount = Math.floor(Math.random() * 3) + 3;
+                for (let i = 0; i < layerCount; i++) {
+                    const height = baseHeight + i * 8;
+                    const size = 20 - i * 4;
+                    const color = i === 0 ? colors.darkLeaves :
+                                i === layerCount - 1 ? colors.lightLeaves :
+                                colors.midLeaves;
+                    createFoliageLayer(height, size, color);
+                }
+                
+                treeGroup.position.set(x, y, z);
+                this.scene.add(treeGroup);
+            }
+
+            createPixelClouds() {
+                this.clouds = [];
+                
+                const createPixelCloud = () => {
+                    const cloud = new THREE.Group();
+                    const blockSize = 20;
+                    
+                    // Simplified cloud pattern
+                    const cloudPattern = [
+                        [0,1,1,0],
+                        [1,1,1,1],
+                        [0,1,1,0]
+                    ];
+                    
+                    const cloudMaterial = new THREE.MeshLambertMaterial({
+                        color: 0xFFFFFF,
+                        transparent: true,
+                        opacity: 0.9,
+                        flatShading: true
+                    });
+                    
+                    for (let y = 0; y < cloudPattern.length; y++) {
+                        for (let x = 0; x < cloudPattern[y].length; x++) {
+                            if (cloudPattern[y][x] === 1) {
+                                const voxel = new THREE.Mesh(
+                                    new THREE.BoxGeometry(blockSize, blockSize, blockSize),
+                                    cloudMaterial
+                                );
+                                voxel.position.set(
+                                    (x - 2) * blockSize,
+                                    (y - 1) * blockSize * 0.5,
+                                    0
+                                );
+                                cloud.add(voxel);
+                            }
+                        }
+                    }
+                    
+                    return cloud;
+                };
+                
+                // Create fewer clouds
+                for (let i = 0; i < 20; i++) { // Reduced from 40
+                    const cloud = createPixelCloud();
+                    cloud.position.set(
+                        (Math.random() - 0.5) * 1600, // Reduced range
+                        200 + Math.random() * 200,
+                        (Math.random() - 0.5) * 1600
+                    );
+                    this.clouds.push(cloud);
+                    this.scene.add(cloud);
+                }
+            }
+
+            createPlane() {
+                // Create a Minecraft-style fighter jet
+                const planeGroup = new THREE.Group();
+                
+                // Helper function to create a block
+                const createBlock = (width, height, depth, color, x, y, z) => {
+                    const geometry = new THREE.BoxGeometry(width, height, depth);
+                    const material = new THREE.MeshLambertMaterial({ 
+                        color: color,
+                        flatShading: true
+                    });
+                    const block = new THREE.Mesh(geometry, material);
+                    block.position.set(x, y, z);
+                    block.castShadow = true;
+                    planeGroup.add(block);
+                    return block;
+                };
+                
+                // Main fuselage (sleeker and longer)
+                createBlock(4, 2, 16, 0x3B96D2, 0, 0, 0); // Blue fuselage
+                
+                // Fighter jet style wings (flat and angled)
+                // Left wing
+                createBlock(12, 0.5, 8, 0x3B96D2, -6, 0, 2); // Main wing section
+                createBlock(4, 0.5, 3, 0x3B96D2, -10, 0, 2); // Wing tip
+                
+                // Right wing
+                createBlock(12, 0.5, 8, 0x3B96D2, 6, 0, 2); // Main wing section
+                createBlock(4, 0.5, 3, 0x3B96D2, 10, 0, 2); // Wing tip
+                
+                // Nose (more pointed)
+                createBlock(3, 2, 4, 0xE0E0E0, 0, 0, 9);
+                createBlock(2, 1.5, 2, 0xE0E0E0, 0, 0, 11);
+                
+                // Small tail fin (reduced size)
+                createBlock(2, 3, 1, 0x3B96D2, 0, 1.5, -7); // Vertical stabilizer
+                
+                // Horizontal stabilizers (smaller and angled)
+                createBlock(5, 0.5, 3, 0x3B96D2, -2.5, 0, -7); // Left stabilizer
+                createBlock(5, 0.5, 3, 0x3B96D2, 2.5, 0, -7); // Right stabilizer
+                
+                // Cockpit (black blocks)
+                createBlock(2, 1, 3, 0x111111, 0, 1, 6);
+                
+                // Engine exhausts
+                createBlock(1, 1, 2, 0x333333, -1, 0, -8);
+                createBlock(1, 1, 2, 0x333333, 1, 0, -8);
+                
+                // Set up the plane
+                this.plane = planeGroup;
+                
+                // No need for Y rotation now that we've built it facing forward
+                this.plane.rotation.y = 0;
+                
+                this.plane.position.set(0, 10, 0);
+                this.scene.add(this.plane);
+
+                // Adjust camera parameters for better third-person view
+                this.camera.position.set(0, 8, -25);
+                this.cameraOffset = new THREE.Vector3(0, 8, -25);
+            }
+
+            createBalloons() {
+                this.balloons = [];
+                for (let i = 0; i < 5; i++) { // Reduced from 10
+                    const balloon = this.createBalloon();
+                    balloon.position.set(
+                        (Math.random() - 0.5) * 800, // Reduced range
+                        100 + Math.random() * 200,
+                        (Math.random() - 0.5) * 800
+                    );
+                    this.scene.add(balloon);
+                    this.balloons.push(balloon);
+                }
+            }
+
+            createBalloon() {
+                // Create Minecraft-style balloon (cube)
+                const balloon = new THREE.Group();
+
+                // Balloon part (cube)
+                const balloonGeometry = new THREE.BoxGeometry(10, 10, 10);
+                const balloonMaterial = new THREE.MeshLambertMaterial({
+                    color: Math.random() > 0.5 ? 0xff0000 : 0x00ff00, // Red or green
+                    flatShading: true
+                });
+                const balloonCube = new THREE.Mesh(balloonGeometry, balloonMaterial);
+                balloon.add(balloonCube);
+
+                // Basket (small cube)
+                const basketGeometry = new THREE.BoxGeometry(4, 4, 4);
+                const basketMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0x8B4513,
+                    flatShading: true 
+                });
+                const basket = new THREE.Mesh(basketGeometry, basketMaterial);
+                basket.position.y = -10;
+                balloon.add(basket);
+
+                // Ropes (thin blocks)
+                const ropeGeometry = new THREE.BoxGeometry(0.5, 6, 0.5);
+                const ropeMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0x8B4513,
+                    flatShading: true 
+                });
+                
+                // Add four ropes at corners
+                for (let x = -1; x <= 1; x += 2) {
+                    for (let z = -1; z <= 1; z += 2) {
+                        const rope = new THREE.Mesh(ropeGeometry, ropeMaterial);
+                        rope.position.set(x * 2, -7, z * 2);
+                        balloon.add(rope);
+                    }
+                }
+
+                return balloon;
+            }
+
+            setupControls() {
+                this.keys = {};
+                this.speed = 2;
+                this.rollSpeed = 0.05;
+                this.pitchSpeed = 0.03;
+                this.rudderSpeed = 0.02;
+                this.maxSpeed = 5;
+                this.minSpeed = 0.5;
+                this.speedIncrement = 0.05;
+                this.isSuperTurbo = false;
+                this.bullets = [];
+                this.score = 0;
+                this.balloonsHit = 0;
+                this.highScore = localStorage.getItem('highScore') || 0;
+                this.health = 100;
+                this.lastShot = 0;
+                this.shootDelay = 250;
+                this.gameTime = 60; // 60 seconds game time
+                this.isGameActive = true;
+                this.velocity = new THREE.Vector3(0, 0, 0); // Initialize velocity vector
+
+                // Update high score display
+                document.getElementById('highscore').textContent = this.highScore;
+
+                // Start the game timer
+                this.startGameTimer();
+
+                document.addEventListener('keydown', (e) => {
+                    this.keys[e.code] = true;
+                    if (e.code === 'Space' && this.isGameActive) {
+                        this.shoot();
+                    }
+                    if (e.code === 'ShiftRight') {
+                        this.isSuperTurbo = true;
+                        this.maxSpeed = 10;
+                    }
+                    if (e.code === 'KeyR' && !this.isGameActive) {
+                        this.restartGame();
+                    }
+                    if (e.code === 'KeyV') {
+                        // Toggle camera view (you can implement different views)
+                    }
+                    if (e.code === 'KeyM') {
+                        // Mute sound (you can implement sound control)
+                    }
+                });
+
+                document.addEventListener('keyup', (e) => {
+                    this.keys[e.code] = false;
+                    if (e.code === 'ShiftRight') {
+                        this.isSuperTurbo = false;
+                        this.maxSpeed = 5; // Reset max speed
+                    }
+                });
+            }
+
+            shoot() {
+                const now = performance.now();
+                if (now - this.lastShot < this.shootDelay) return;
+                
+                this.lastShot = now;
+
+                // Create bullet with 300% increased size (doubled again)
+                const bulletGeometry = new THREE.BoxGeometry(1.2, 1.2, 12); // Minecraft-style block laser, 300% larger
+                const bulletMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xff0000,
+                    emissive: 0xff0000,
+                    emissiveIntensity: 1
+                });
+                const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
+                
+                // Add point light to bullet for glow effect
+                const bulletLight = new THREE.PointLight(0xff0000, 3, 30); // Stronger light
+                bullet.add(bulletLight);
+                
+                // Position and orient bullet
+                bullet.position.copy(this.plane.position);
+                bullet.quaternion.copy(this.plane.quaternion);
+                
+                // Move bullet forward from plane position
+                const bulletDirection = new THREE.Vector3(0, 0, 1);
+                bulletDirection.applyQuaternion(this.plane.quaternion);
+                bullet.position.add(bulletDirection.multiplyScalar(12));
+                
+                // Store bullet data
+                this.bullets.push({
+                    mesh: bullet,
+                    direction: bulletDirection.clone().normalize(),
+                    speed: 10,
+                    created: now
+                });
+                
+                this.scene.add(bullet);
+                
+                // Add Minecraft-style muzzle flash (blocky cube)
+                const flashGeometry = new THREE.BoxGeometry(2.5, 2.5, 2.5);
+                const flashMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xff6600,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const flash = new THREE.Mesh(flashGeometry, flashMaterial);
+                flash.position.copy(bullet.position);
+                this.scene.add(flash);
+                
+                // Remove flash after short delay
+                setTimeout(() => {
+                    this.scene.remove(flash);
+                }, 50);
+            }
+
+            startGameTimer() {
+                const timerElement = document.getElementById('timer');
+                this.gameTimer = setInterval(() => {
+                    this.gameTime--;
+                    timerElement.textContent = this.gameTime;
+                    
+                    if (this.gameTime <= 0) {
+                        this.endGame();
+                    }
+                }, 1000);
+            }
+
+            endGame() {
+                this.isGameActive = false;
+                clearInterval(this.gameTimer);
+                
+                // Update user's scores in localStorage
+                const users = JSON.parse(localStorage.getItem('arcade_users')) || {};
+                const currentUser = localStorage.getItem('current_user');
+                
+                if (currentUser && users[currentUser]) {
+                    const user = users[currentUser];
+                    user.flightHighScore = Math.max(user.flightHighScore || 0, this.score);
+                    user.balloonsHit = (user.balloonsHit || 0) + this.balloonsHit;
+                    localStorage.setItem('arcade_users', JSON.stringify(users));
+                }
+
+                // Remove existing game over message if present
+                const existingGameOver = document.getElementById('gameOver');
+                if (existingGameOver) {
+                    existingGameOver.remove();
+                }
+
+                // Create game over message
+                const gameOver = document.createElement('div');
+                gameOver.className = 'game-over';
+                gameOver.id = 'gameOver';
+                
+                let reason = "Time's up!";
+                if (this.health <= 0) {
+                    reason = "Crashed!";
+                }
+
+                const userHighScore = users[currentUser]?.flightHighScore || this.score;
+                
+                gameOver.innerHTML = `
+                    <h2>Game Over!</h2>
+                    <p>${reason}</p>
+                    <p>Final Score: ${this.score}</p>
+                    <p>Balloons Hit: ${this.balloonsHit}</p>
+                    <p>High Score: ${userHighScore}</p>
+                    <p>Press R to Restart</p>
+                `;
+                document.body.appendChild(gameOver);
+            }
+
+            restartGame() {
+                // Remove game over message if it exists
+                const gameOver = document.getElementById('gameOver');
+                if (gameOver) {
+                    gameOver.remove();
+                }
+
+                // Reset game variables
+                this.score = 0;
+                this.balloonsHit = 0;
+                this.health = 100;
+                this.gameTime = 60;
+                this.isGameActive = true;
+                this.speed = 2; // Reset speed to initial value
+                
+                // Reset plane position and orientation
+                this.plane.position.set(0, 10, 0); // Reset to starting position
+                this.plane.rotation.set(0, 0, 0); // Reset all rotation
+                this.plane.quaternion.set(0, 0, 0, 1); // Reset quaternion
+                
+                // Reset camera position
+                this.camera.position.copy(this.cameraOffset);
+                this.camera.lookAt(this.plane.position);
+                
+                // Update displays
+                document.getElementById('score').textContent = '0';
+                document.getElementById('balloons-hit').textContent = '0';
+                document.getElementById('timer').textContent = '60';
+                document.getElementById('speed').textContent = '40'; // 2 * 20 = 40 (initial speed)
+                document.getElementById('altitude').textContent = '10';
+                document.getElementById('health').textContent = '100%';
+                
+                // Reset balloon positions
+                this.balloons.forEach(balloon => this.scene.remove(balloon));
+                this.balloons = [];
+                this.createBalloons();
+
+                // Clear any remaining bullets
+                this.bullets.forEach(bullet => this.scene.remove(bullet.mesh));
+                this.bullets = [];
+
+                // Restart timer
+                clearInterval(this.gameTimer);
+                this.startGameTimer();
+            }
+
+            updateBullets() {
+                if (!this.isGameActive) return;
+                
+                const bulletSpeed = 15;
+                
+                for (let i = this.bullets.length - 1; i >= 0; i--) {
+                    const bullet = this.bullets[i];
+                    
+                    // Move bullet in its forward direction
+                    const movement = bullet.direction.clone().multiplyScalar(bulletSpeed);
+                    bullet.mesh.position.add(movement);
+                    
+                    // Check distance from player (remove if too far)
+                    const distanceFromPlayer = bullet.mesh.position.distanceTo(this.plane.position);
+                    if (distanceFromPlayer > 1000 || performance.now() - bullet.created > 2000) {
+                        this.scene.remove(bullet.mesh);
+                        this.bullets.splice(i, 1);
+                        continue;
+                    }
+                    
+                    // Check collision with balloons
+                    for (let j = this.balloons.length - 1; j >= 0; j--) {
+                        const balloon = this.balloons[j];
+                        const distance = bullet.mesh.position.distanceTo(balloon.position);
+                        
+                        if (distance < 7) { // Hit detection radius
+                            // Create explosion
+                            this.createExplosion(balloon.position);
+                            
+                            // Remove bullet and balloon
+                            this.scene.remove(bullet.mesh);
+                            this.bullets.splice(i, 1);
+                            this.scene.remove(balloon);
+                            this.balloons.splice(j, 1);
+                            
+                            // Update score and balloons hit
+                            this.balloonsHit++;
+                            // Score formula: base points (100) + speed bonus + time bonus
+                            const speedBonus = Math.round(this.speed * 20);
+                            const timeBonus = Math.round(this.gameTime * 2);
+                            const points = 100 + speedBonus + timeBonus;
+                            this.score += points;
+                            
+                            // Update displays
+                            document.getElementById('score').textContent = this.score;
+                            document.getElementById('balloons-hit').textContent = this.balloonsHit;
+                            
+                            // Create new balloon
+                            setTimeout(() => {
+                                if (this.isGameActive) {
+                                    const newBalloon = this.createBalloon();
+                                    newBalloon.position.set(
+                                        (Math.random() - 0.5) * 2000,
+                                        100 + Math.random() * 300,
+                                        (Math.random() - 0.5) * 2000
+                                    );
+                                    this.scene.add(newBalloon);
+                                    this.balloons.push(newBalloon);
+                                }
+                            }, 3000);
+                            
+                            break;
+                        }
+                    }
+                }
+            }
+
+            createExplosion(position) {
+                // Create explosion light
+                const explosionLight = new THREE.PointLight(0xff6600, 3, 30);
+                explosionLight.position.copy(position);
+                this.scene.add(explosionLight);
+                
+                // Create explosion particles
+                const particleCount = 40;
+                const explosionGroup = new THREE.Group();
+                
+                for (let i = 0; i < particleCount; i++) {
+                    const size = Math.random() * 0.8 + 0.2;
+                    const particle = new THREE.Mesh(
+                        new THREE.SphereGeometry(size, 8, 8),
+                        new THREE.MeshBasicMaterial({
+                            color: i % 3 === 0 ? 0xff0000 : i % 3 === 1 ? 0xff6600 : 0xffff00,
+                            transparent: true,
+                            opacity: 0.8
+                        })
+                    );
+                    
+                    // Random position within explosion radius
+                    const radius = Math.random() * 2;
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.random() * Math.PI;
+                    
+                    particle.position.set(
+                        position.x + radius * Math.sin(phi) * Math.cos(theta),
+                        position.y + radius * Math.sin(phi) * Math.sin(theta),
+                        position.z + radius * Math.cos(phi)
+                    );
+                    
+                    // Random velocity
+                    const speed = 2 + Math.random() * 3;
+                    particle.velocity = new THREE.Vector3(
+                        (Math.random() - 0.5) * speed,
+                        (Math.random() - 0.3) * speed,
+                        (Math.random() - 0.5) * speed
+                    );
+                    
+                    // Store initial size for scaling during animation
+                    particle.initialScale = particle.scale.clone();
+                    
+                    explosionGroup.add(particle);
+                }
+                
+                this.scene.add(explosionGroup);
+                
+                // Animate explosion
+                const startTime = performance.now();
+                const duration = 1000; // 1 second explosion
+                
+                const animateExplosion = () => {
+                    const elapsed = performance.now() - startTime;
+                    const progress = elapsed / duration;
+                    
+                    if (progress >= 1) {
+                        this.scene.remove(explosionGroup);
+                        this.scene.remove(explosionLight);
+                        return;
+                    }
+                    
+                    // Update particles
+                    explosionGroup.children.forEach(particle => {
+                        // Move according to velocity
+                        particle.position.add(particle.velocity);
+                        
+                        // Add gravity effect
+                        particle.velocity.y -= 0.05;
+                        
+                        // Scale down over time
+                        const scale = 1 - progress;
+                        particle.scale.copy(particle.initialScale).multiplyScalar(scale);
+                        
+                        // Fade out
+                        particle.material.opacity = 0.8 * (1 - progress);
+                    });
+                    
+                    // Fade out light
+                    explosionLight.intensity = 3 * (1 - progress);
+                    
+                    requestAnimationFrame(animateExplosion);
+                };
+                
+                animateExplosion();
+            }
+
+            applyScreenShake(intensity = 0.02, duration = 150) {
+                const originalPosition = this.camera.position.clone();
+                let startTime = performance.now();
+
+                const shake = () => {
+                    let elapsed = performance.now() - startTime;
+                    if (elapsed < duration) {
+                        const shakeAmount = intensity * (1 - elapsed / duration);
+                        this.camera.position.x = originalPosition.x + (Math.random() - 0.5) * shakeAmount;
+                        this.camera.position.y = originalPosition.y + (Math.random() - 0.5) * shakeAmount;
+                        this.camera.position.z = originalPosition.z + (Math.random() - 0.5) * shakeAmount;
+                        requestAnimationFrame(shake);
+                    } else {
+                        this.camera.position.copy(originalPosition); // Reset position
+                    }
+                };
+                shake();
+            }
+
+            getTerrainHeight(x, z) {
+                // Simple flat terrain with a base height of 0
+                return 0;
+            }
+
+            updatePlane() {
+                if (!this.isGameActive) return;
+
+                // Throttle control (W/S)
+                if (this.keys['KeyW']) {
+                    this.speed = Math.min(this.speed + this.speedIncrement, this.maxSpeed);
+                } else if (this.keys['KeyS']) {
+                    this.speed = Math.max(this.speed - this.speedIncrement, this.minSpeed);
+                }
+
+                // Create directional vectors
+                const forward = new THREE.Vector3(0, 0, 1);
+                const up = new THREE.Vector3(0, 1, 0);
+                const right = new THREE.Vector3(1, 0, 0);
+
+                // Reset rotation if it becomes unstable
+                if (isNaN(this.plane.rotation.x) || isNaN(this.plane.rotation.y) || isNaN(this.plane.rotation.z)) {
+                    this.plane.rotation.set(0, this.plane.rotation.y, 0);
+                }
+
+                // Set proper Euler order
+                this.plane.rotation.order = 'YXZ';
+
+                // Bank and turn (Left/Right arrows)
+                if (this.keys['ArrowLeft']) {
+                    // Roll left with limit
+                    const targetRoll = -0.5; // Reduced maximum bank angle
+                    this.plane.rotation.z = THREE.MathUtils.lerp(
+                        this.plane.rotation.z,
+                        targetRoll,
+                        0.05  // Reduced turn sensitivity
+                    );
+                    
+                    // Turn rate based on bank angle
+                    this.plane.rotation.y += 0.03;
+                } else if (this.keys['ArrowRight']) {
+                    // Roll right with limit
+                    const targetRoll = 0.5; // Reduced maximum bank angle
+                    this.plane.rotation.z = THREE.MathUtils.lerp(
+                        this.plane.rotation.z,
+                        targetRoll,
+                        0.05  // Reduced turn sensitivity
+                    );
+                    
+                    // Turn rate based on bank angle
+                    this.plane.rotation.y -= 0.03;
+                } else {
+                    // Auto-level roll more smoothly
+                    this.plane.rotation.z = THREE.MathUtils.lerp(
+                        this.plane.rotation.z,
+                        0,
+                        0.1
+                    );
+                }
+
+                // Pitch control (Up/Down arrows)
+                if (this.keys['ArrowUp']) {
+                    const targetPitch = -0.4; // Reduced pitch angle
+                    this.plane.rotation.x = THREE.MathUtils.lerp(
+                        this.plane.rotation.x,
+                        targetPitch,
+                        0.05
+                    );
+                } else if (this.keys['ArrowDown']) {
+                    const targetPitch = 0.4; // Reduced pitch angle
+                    this.plane.rotation.x = THREE.MathUtils.lerp(
+                        this.plane.rotation.x,
+                        targetPitch,
+                        0.05
+                    );
+                } else {
+                    // Auto-level pitch more smoothly
+                    this.plane.rotation.x = THREE.MathUtils.lerp(
+                        this.plane.rotation.x,
+                        0,
+                        0.1
+                    );
+                }
+
+                // Ensure rotation stays within safe limits
+                this.plane.rotation.x = THREE.MathUtils.clamp(this.plane.rotation.x, -Math.PI/3, Math.PI/3);
+                this.plane.rotation.z = THREE.MathUtils.clamp(this.plane.rotation.z, -Math.PI/3, Math.PI/3);
+
+                // Calculate movement direction
+                const direction = forward.clone();
+                direction.applyQuaternion(this.plane.quaternion);
+
+                // Add lift and banking effects
+                const baseLift = 0.02;
+                const speedLift = this.speed * 0.01;
+                const pitchLift = -this.plane.rotation.x * 0.3; // Reduced pitch effect
+                direction.y += baseLift + speedLift + pitchLift;
+
+                // Reduce lift during steep banks
+                if (Math.abs(this.plane.rotation.z) > 0.2) {
+                    direction.y -= Math.abs(this.plane.rotation.z) * 0.05;
+                }
+
+                // Move plane
+                const movement = direction.multiplyScalar(this.speed);
+                this.plane.position.add(movement);
+
+                // Apply gravity
+                if (this.plane.position.y > 1) {
+                    const gravityForce = 0.015 * (1 - Math.min(this.speed / this.maxSpeed, 1) * 0.8);
+                    this.plane.position.y -= gravityForce;
+                }
+
+                // Prevent going below ground
+                if (this.plane.position.y < 1) {
+                    this.plane.position.y = 1;
+                    if (this.speed > 3) {
+                        document.getElementById('health').textContent = '0%';
+                    }
+                }
+
+                // Update camera position
+                const idealOffset = new THREE.Vector3(0, 8, -25);
+                idealOffset.applyQuaternion(this.plane.quaternion);
+                const targetCameraPos = this.plane.position.clone().add(idealOffset);
+                this.camera.position.lerp(targetCameraPos, 0.1);
+
+                // Look ahead of the plane
+                const lookAhead = this.plane.position.clone().add(direction.multiplyScalar(10));
+                lookAhead.y += 2; // Look slightly above the nose
+                this.camera.lookAt(lookAhead);
+
+                // Update HUD
+                document.getElementById('altitude').textContent = Math.round(this.plane.position.y);
+                document.getElementById('speed').textContent = Math.round(this.speed * 20);
+
+                // --- Ground Collision Check ---
+                const groundHeight = this.getTerrainHeight(this.plane.position.x, this.plane.position.z);
+                if (this.plane.position.y <= groundHeight + 1) { // Check slightly above ground
+                    const impactSpeed = Math.abs(direction.y * this.speed * 1000); // Use vertical speed for impact force
+                    let damage = 0;
+
+                    if (impactSpeed > 500) { // Minor bump
+                        damage = Math.min(10 + (impactSpeed - 500) / 50, 25); // Scale damage
+                        this.applyScreenShake(0.01, 100); // Small shake
+                    }
+                    if (impactSpeed > 1500) { // Hard impact
+                        damage = Math.min(25 + (impactSpeed - 1500) / 30, 75); // Higher damage scaling
+                        this.applyScreenShake(0.03, 200); // Medium shake
+                    }
+                     if (impactSpeed > 3000) { // Crash
+                        damage = 100; // Instant game over
+                        this.applyScreenShake(0.05, 300); // Large shake
+                    }
+                    
+                    if (damage > 0) {
+                        this.health -= damage;
+                        this.health = Math.max(0, this.health); // Clamp health at 0
+                        document.getElementById('health').textContent = `${Math.round(this.health)}%`;
+
+                        // Bounce the plane slightly
+                        this.plane.position.y = groundHeight + 1.1;
+                        // Reduce downward movement on impact
+                        if (direction.y < 0) {
+                            this.plane.position.y += Math.min(-direction.y * 0.01, 2);
+                        }
+                    }
+
+                    if (this.health <= 0) {
+                        this.endGame();
+                        return; // Stop further updates this frame
+                    }
+                }
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                this.updatePlane();
+                this.updateBullets();
+
+                // Optimize cloud animation
+                const time = performance.now() * 0.001;
+                this.clouds.forEach((cloud, index) => {
+                    cloud.position.x += 0.2;
+                    if (cloud.position.x > 800) { // Reduced range
+                        cloud.position.x = -800;
+                    }
+                });
+
+                // Optimize balloon animation
+                this.balloons.forEach((balloon, index) => {
+                    balloon.position.y += Math.sin(time + index) * 0.05;
+                    balloon.rotation.y = (time + index) * 0.2;
+                });
+
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            // Update the initialization of high score
+            initializeScores() {
+                this.score = 0;
+                this.balloonsHit = 0;
+                
+                const users = JSON.parse(localStorage.getItem('arcade_users')) || {};
+                const currentUser = localStorage.getItem('current_user');
+                
+                if (currentUser && users[currentUser]) {
+                    this.highScore = users[currentUser].flightHighScore || 0;
+                } else {
+                    this.highScore = 0;
+                }
+                
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('highscore').textContent = this.highScore;
+                document.getElementById('balloons-hit').textContent = this.balloonsHit;
+            }
+        }
+
+        // Start the game
+        window.onload = () => {
+            new Game();
+        };
+    </script>
+</body>
+</html> 
