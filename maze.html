@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Addict 0 - Maze Runner</title>
+    <script async src="https://unpkg.com/es-module-shims/dist/es-module-shims.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+        }
+    }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(135deg, #1a237e 0%, #7c4dff 100%);
+        }
+
+        #gameOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(26, 35, 126, 0.9) 0%, rgba(124, 77, 255, 0.9) 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .card {
+            background: rgba(18, 18, 18, 0.95);
+            border: 2px solid #00b0ff;
+            border-radius: 15px;
+            padding: 40px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 0 20px rgba(0, 176, 255, 0.3);
+            text-align: center;
+            animation: cardGlow 2s infinite alternate;
+        }
+
+        @keyframes cardGlow {
+            from { box-shadow: 0 0 20px rgba(0, 176, 255, 0.3); }
+            to { box-shadow: 0 0 30px rgba(0, 176, 255, 0.5); }
+        }
+
+        .title {
+            color: #fff;
+            font-size: 48px;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px rgba(0, 176, 255, 0.5);
+        }
+
+        .subtitle {
+            color: #00b0ff;
+            font-size: 24px;
+            margin: 10px 0 20px;
+        }
+
+        .description {
+            color: #bbb;
+            font-size: 18px;
+            margin: 20px 0;
+        }
+
+        .rating {
+            color: #ffd700;
+            font-size: 30px;
+            margin: 20px 0;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .difficulty-select {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .difficulty-btn {
+            background: #00b0ff;
+            color: #fff;
+            border: none;
+            padding: 10px 25px;
+            font-size: 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 176, 255, 0.4);
+        }
+
+        .difficulty-btn:hover {
+            background: #0091ea;
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(0, 176, 255, 0.6);
+        }
+
+        #hud {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: #00b0ff;
+            text-shadow: 0 0 5px rgba(0, 176, 255, 0.5);
+            font-size: 16px;
+            text-align: right;
+            background: rgba(18, 18, 18, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 176, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 176, 255, 0.2);
+        }
+
+        #home-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(18, 18, 18, 0.9);
+            color: #00b0ff;
+            border: 2px solid #00b0ff;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(0, 176, 255, 0.2);
+        }
+
+        #home-button:hover {
+            background: #00b0ff;
+            color: #111;
+            box-shadow: 0 0 25px rgba(0, 176, 255, 0.4);
+            transform: scale(1.05);
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: #fff;
+            font-size: 14px;
+            pointer-events: none;
+            text-align: right;
+            background: rgba(18, 18, 18, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 176, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 176, 255, 0.2);
+        }
+
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(18, 18, 18, 0.95);
+            color: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            border: 2px solid #00b0ff;
+            box-shadow: 0 0 30px rgba(0, 176, 255, 0.4);
+        }
+
+        .game-over h2 {
+            color: #00b0ff;
+            font-size: 36px;
+            margin: 0 0 20px;
+            text-transform: uppercase;
+        }
+
+        .game-over p {
+            color: #fff;
+            font-size: 20px;
+            margin: 10px 0;
+        }
+
+        #crosshair {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+        }
+
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(0, 176, 255, 0.8);
+            box-shadow: 0 0 5px rgba(0, 176, 255, 0.5);
+        }
+
+        #crosshair::before {
+            width: 2px;
+            height: 20px;
+            left: 9px;
+            top: 0;
+        }
+
+        #crosshair::after {
+            width: 20px;
+            height: 2px;
+            left: 0;
+            top: 9px;
+        }
+    </style>
+</head>
+<body>
+    <button id="home-button" onclick="window.location.href='index.html'">Home</button>
+    <div id="gameOverlay">
+        <div class="card">
+            <h1 class="title">Addict 0</h1>
+            <h2 class="subtitle">Maze Runner</h2>
+            <p class="description">Can you escape the ever-changing labyrinth? Each maze is randomly generated and extremely challenging!</p>
+            <div class="rating">★★★</div>
+            <div class="difficulty-select">
+                <button class="difficulty-btn" onclick="startGame()">Start Game</button>
+            </div>
+        </div>
+    </div>
+    <div id="hud">
+        <div>Time Remaining: <span id="timer">120</span>s</div>
+        <div>Current Score: <span id="score">0</span></div>
+        <div>High Score: <span id="highscore">0</span></div>
+        <div>Lives: <span id="lives">3</span></div>
+    </div>
+    <div id="controls">
+        Controls:
+        <br>- Arrow Keys: Move
+        <br>- N: Zoom In
+        <br>- M: Zoom Out
+        <br>- Find the exit to win!
+        <br>- Press R to restart
+    </div>
+    <div id="crosshair"></div>
+    <script type="module">
+        import * as THREE from 'three';
+
+        class Game {
+            constructor() {
+                // Check if user is logged in
+                const currentUser = localStorage.getItem('current_user');
+                if (!currentUser) {
+                    alert('Please log in to play!');
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // Initialize game
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+                
+                // Camera will be positioned based on maze size in createMaze()
+                this.cameraAngle = -Math.PI / 3; // -60 degrees for looking down
+                this.viewPercentage = 0.7; // Show 70% of maze
+
+                this.renderer = new THREE.WebGLRenderer({ 
+                    antialias: true,
+                    logarithmicDepthBuffer: true
+                });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setClearColor(0x87CEEB);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                document.body.appendChild(this.renderer.domElement);
+
+                // Initialize walls array
+                this.walls = [];
+
+                this.setupLights();
+                this.setupControls();
+                this.isInitialized = false;
+
+                // Add window resize handler
+                window.addEventListener('resize', () => this.onWindowResize());
+            }
+
+            setupLights() {
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.52);
+                this.scene.add(ambientLight);
+
+                this.sunLight = new THREE.DirectionalLight(0xffd500, 1.95);
+                this.sunLight.position.set(100, 100, 50);
+                this.sunLight.castShadow = true;
+                this.sunLight.shadow.mapSize.width = 2048;
+                this.sunLight.shadow.mapSize.height = 2048;
+                this.scene.add(this.sunLight);
+            }
+
+            setupControls() {
+                this.keys = {};
+                this.moveSpeed = 0.15;
+                this.score = 0;
+                this.highScore = 0;
+                this.gameTime = 240;
+                this.mazeSize = 65;
+                this.isGameActive = true;
+                this.lives = 3;
+                
+                // Add zoom controls
+                this.minZoom = 0.5;  // Maximum zoom in (50% closer)
+                this.maxZoom = 1.5;  // Maximum zoom out (50% further)
+                this.currentZoom = 1.0;  // Starting zoom level
+                this.zoomSpeed = 0.1;  // Zoom speed per key press
+                
+                // Keyboard controls
+                document.addEventListener('keydown', (e) => {
+                    this.keys[e.code] = true;
+                    if (e.code === 'KeyR' && !this.isGameActive) {
+                        this.restartGame();
+                    }
+                    
+                    // Handle zoom controls
+                    if (this.isGameActive) {
+                        if (e.code === 'KeyN') {  // Zoom in
+                            this.currentZoom = Math.max(this.minZoom, this.currentZoom - this.zoomSpeed);
+                            this.updateCameraPosition();
+                        } else if (e.code === 'KeyM') {  // Zoom out
+                            this.currentZoom = Math.min(this.maxZoom, this.currentZoom + this.zoomSpeed);
+                            this.updateCameraPosition();
+                        }
+                    }
+                });
+
+                document.addEventListener('keyup', (e) => {
+                    this.keys[e.code] = false;
+                });
+            }
+
+            updateCameraPosition() {
+                // Calculate base camera offset
+                const aspectRatio = window.innerWidth / window.innerHeight;
+                const fov = this.camera.fov * (Math.PI / 180);
+                const mazeWidth = this.mazeSize;
+                const targetWidth = mazeWidth * this.viewPercentage;
+                const distance = (targetWidth / 2) / Math.tan(fov / 2);
+                
+                // Apply zoom to distance
+                const zoomedDistance = distance * this.currentZoom;
+                
+                // Calculate camera position with zoom
+                const height = zoomedDistance * Math.sin(-this.cameraAngle);
+                const horizontalDistance = zoomedDistance * Math.cos(-this.cameraAngle);
+                
+                // Update camera offset
+                this.cameraOffset = new THREE.Vector3(0, height, horizontalDistance);
+                
+                // Update camera position
+                if (this.player) {
+                    this.camera.position.copy(this.player.position).add(this.cameraOffset);
+                    this.camera.lookAt(this.player.position);
+                }
+            }
+
+            setDifficulty() {
+                // Load high score
+                const users = JSON.parse(localStorage.getItem('arcade_users')) || {};
+                const currentUser = localStorage.getItem('current_user');
+                if (currentUser && users[currentUser]) {
+                    this.highScore = users[currentUser]['mazeHighScore'] || 0;
+                    document.getElementById('highscore').textContent = this.highScore;
+                }
+
+                // Update timer display
+                document.getElementById('timer').textContent = this.gameTime;
+                
+                // Update lives display
+                const livesElement = document.createElement('div');
+                livesElement.id = 'lives';
+                livesElement.textContent = `Lives: ${this.lives}`;
+                document.getElementById('hud').appendChild(livesElement);
+
+                // Initialize the game if not already done
+                if (!this.isInitialized) {
+                    this.isInitialized = true;
+                    this.createMaze();
+                    this.animate();
+                }
+            }
+
+            createMaze() {
+                // Clear existing maze
+                while(this.scene.children.length > 0) { 
+                    const object = this.scene.children[0]; 
+                    if(object.type === 'Mesh') {
+                        object.geometry.dispose();
+                        object.material.dispose();
+                    }
+                    this.scene.remove(object); 
+                }
+
+                // Reset walls array
+                this.walls = [];
+
+                // Add lights back
+                this.setupLights();
+
+                // Calculate initial camera position with zoom
+                this.updateCameraPosition();
+
+                // Create maze materials
+                const wallMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0x4DB6FF,
+                    flatShading: true
+                });
+                const floorMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0x72A35C,
+                    flatShading: true
+                });
+                const exitMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0xFF6AA1,
+                    flatShading: true,
+                    emissive: 0xFF6AA1,
+                    emissiveIntensity: 0.65
+                });
+                const playerMaterial = new THREE.MeshLambertMaterial({
+                    color: 0xFFE240,
+                    flatShading: true,
+                    emissive: 0xFFE240,
+                    emissiveIntensity: 0.39
+                });
+
+                // Create floor
+                const floorGeometry = new THREE.PlaneGeometry(this.mazeSize, this.mazeSize);
+                const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+                floor.rotation.x = -Math.PI / 2;
+                floor.receiveShadow = true;
+                this.scene.add(floor);
+
+                // Generate maze using depth-first search
+                const maze = this.generateMaze(this.mazeSize, this.mazeSize);
+                
+                // Create walls based on maze
+                for (let x = 0; x < this.mazeSize; x++) {
+                    for (let z = 0; z < this.mazeSize; z++) {
+                        if (maze[x][z] === 1) {
+                            const wallGeometry = new THREE.BoxGeometry(1, 2, 1);
+                            const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+                            wall.position.set(x - this.mazeSize/2 + 0.5, 1, z - this.mazeSize/2 + 0.5);
+                            wall.castShadow = true;
+                            wall.receiveShadow = true;
+                            this.scene.add(wall);
+                            this.walls.push(wall);
+                        }
+                    }
+                }
+
+                // Create exit
+                const exitGeometry = new THREE.BoxGeometry(1, 0.2, 1);
+                const exit = new THREE.Mesh(exitGeometry, exitMaterial);
+                exit.position.set(this.mazeSize/2 - 1.5, 0.1, this.mazeSize/2 - 1.5);
+                exit.receiveShadow = true;
+                this.scene.add(exit);
+                this.exit = exit;
+
+                // Create player character
+                const playerGeometry = new THREE.ConeGeometry(0.3, 1, 8);
+                this.player = new THREE.Mesh(playerGeometry, playerMaterial);
+                this.player.position.set(-this.mazeSize/2 + 1.5, 0.5, -this.mazeSize/2 + 1.5);
+                this.player.castShadow = true;
+                this.player.receiveShadow = true;
+                this.scene.add(this.player);
+            }
+
+            generateMaze(width, height) {
+                const maze = Array(width).fill().map(() => Array(height).fill(1));
+                const stack = [];
+                
+                // Create initial path from start to end using depth-first search
+                const startX = 1;
+                const startY = 1;
+                const endX = width - 2;
+                const endY = height - 2;
+                
+                // Ensure start and end points are clear
+                maze[startX][startY] = 0;
+                maze[endX][endY] = 0;
+                
+                // Depth-first search to create a single path
+                const carvePath = (x, y) => {
+                    const directions = [
+                        [0, 2],   // Up
+                        [2, 0],   // Right
+                        [0, -2],  // Down
+                        [-2, 0]   // Left
+                    ].sort(() => Math.random() - 0.5); // Shuffle directions
+                    
+                    for (const [dx, dy] of directions) {
+                        const newX = x + dx;
+                        const newY = y + dy;
+                        const betweenX = x + dx / 2;
+                        const betweenY = y + dy / 2;
+                        
+                        if (newX > 0 && newX < width - 1 && 
+                            newY > 0 && newY < height - 1 && 
+                            maze[newX][newY] === 1) {
+                            
+                            // Carve path
+                            maze[newX][newY] = 0;
+                            maze[betweenX][betweenY] = 0;
+                            carvePath(newX, newY);
+                        }
+                    }
+                };
+                
+                // Start carving from the start point
+                carvePath(startX, startY);
+                
+                // Ensure the start and end areas remain accessible
+                for (let i = 0; i < 2; i++) {
+                    maze[startX + i][startY] = 0;
+                    maze[startX][startY + i] = 0;
+                    maze[endX - i][endY] = 0;
+                    maze[endX][endY - i] = 0;
+                }
+                
+                return maze;
+            }
+
+            updatePlayer() {
+                if (!this.isGameActive) return;
+
+                // Calculate movement direction
+                const moveDirection = new THREE.Vector3();
+                if (this.keys['ArrowUp']) moveDirection.z -= 1;
+                if (this.keys['ArrowDown']) moveDirection.z += 1;
+                if (this.keys['ArrowLeft']) moveDirection.x -= 1;
+                if (this.keys['ArrowRight']) moveDirection.x += 1;
+                moveDirection.normalize();
+                moveDirection.multiplyScalar(this.moveSpeed);
+
+                // Check for wall collisions
+                const newPosition = this.player.position.clone().add(moveDirection);
+                const playerRadius = 0.3;
+                let canMove = true;
+
+                for (const wall of this.walls) {
+                    const wallBox = new THREE.Box3().setFromObject(wall);
+                    const playerBox = new THREE.Box3(
+                        newPosition.clone().sub(new THREE.Vector3(playerRadius, 0, playerRadius)),
+                        newPosition.clone().add(new THREE.Vector3(playerRadius, 1, playerRadius))
+                    );
+
+                    if (wallBox.intersectsBox(playerBox)) {
+                        canMove = false;
+                        break;
+                    }
+                }
+
+                if (canMove) {
+                    // Update player position
+                    this.player.position.add(moveDirection);
+
+                    // Rotate player based on movement direction
+                    if (moveDirection.length() > 0) {
+                        const angle = Math.atan2(moveDirection.x, moveDirection.z);
+                        this.player.rotation.y = angle;
+                    }
+
+                    // Update camera position with current zoom level
+                    this.camera.position.copy(this.player.position).add(this.cameraOffset);
+                    this.camera.lookAt(this.player.position);
+
+                    // Check for exit collision
+                    const distanceToExit = this.player.position.distanceTo(this.exit.position);
+                    if (distanceToExit < 1.0) {
+                        this.endGame(true);
+                    }
+                }
+            }
+
+            startGameTimer() {
+                this.startTime = Date.now(); // Record start time
+                const timerElement = document.getElementById('timer');
+                this.gameTimer = setInterval(() => {
+                    const elapsedTime = Math.floor((Date.now() - this.startTime) / 1000);
+                    const remainingTime = Math.max(0, this.gameTime - elapsedTime);
+                    timerElement.textContent = remainingTime;
+                    
+                    if (remainingTime <= 0) {
+                        this.endGame(false);
+                    }
+                }, 100); // Update more frequently for accurate timing
+            }
+
+            calculateScore() {
+                // Calculate time taken in seconds
+                const timeTaken = Math.floor((Date.now() - this.startTime) / 1000);
+                // Higher score for faster completion
+                return Math.floor(10000 * Math.exp(-timeTaken / 60));
+            }
+
+            endGame(won) {
+                this.isGameActive = false;
+                clearInterval(this.gameTimer);
+                
+                // Calculate final score if won
+                if (won) {
+                    this.score = this.calculateScore();
+                } else if (this.lives > 0) {
+                    this.lives--;
+                    this.restartGame(false); // Restart without resetting maze
+                    return;
+                }
+
+                // Update user's scores in localStorage
+                const users = JSON.parse(localStorage.getItem('arcade_users')) || {};
+                const currentUser = localStorage.getItem('current_user');
+                
+                if (currentUser && users[currentUser]) {
+                    const user = users[currentUser];
+                    user['mazeHighScore'] = Math.max(user['mazeHighScore'] || 0, this.score);
+                    localStorage.setItem('arcade_users', JSON.stringify(users));
+                }
+
+                // Remove existing game over message if present
+                const existingGameOver = document.getElementById('gameOver');
+                if (existingGameOver) {
+                    existingGameOver.remove();
+                }
+
+                // Create game over message
+                const gameOver = document.createElement('div');
+                gameOver.className = 'game-over';
+                gameOver.id = 'gameOver';
+                
+                const timeTaken = Math.floor((Date.now() - this.startTime) / 1000);
+                let message = won ? 
+                    `You escaped in ${timeTaken} seconds!` : 
+                    `Out of lives! Try again!`;
+                
+                const userHighScore = users[currentUser]?.['mazeHighScore'] || this.score;
+                
+                gameOver.innerHTML = `
+                    <h2>${won ? 'Maze Completed!' : 'Game Over!'}</h2>
+                    <p>${message}</p>
+                    ${won ? `<p>Time: ${timeTaken}s</p>` : ''}
+                    <p>Score: ${this.score}</p>
+                    <p>High Score: ${userHighScore}</p>
+                    <p>Lives Remaining: ${this.lives}</p>
+                    <p>Press R to try again</p>
+                `;
+                document.body.appendChild(gameOver);
+
+                // Update score display
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('highscore').textContent = userHighScore;
+            }
+
+            restartGame(resetMaze = true) {
+                // Remove game over message if it exists
+                const gameOver = document.getElementById('gameOver');
+                if (gameOver) {
+                    gameOver.remove();
+                }
+
+                // Reset game variables
+                this.score = 0;
+                this.isGameActive = true;
+                
+                // Create new maze if resetMaze is true
+                if (resetMaze) {
+                    this.createMaze();
+                } else {
+                    // Reset player position
+                    this.player.position.set(-this.mazeSize/2 + 1.5, 0.5, -this.mazeSize/2 + 1.5);
+                    this.camera.position.copy(this.player.position).add(this.cameraOffset);
+                    this.camera.lookAt(this.player.position);
+                }
+                
+                // Update displays
+                document.getElementById('score').textContent = '0';
+                document.getElementById('timer').textContent = this.gameTime;
+                
+                // Restart timer
+                clearInterval(this.gameTimer);
+                this.startGameTimer();
+            }
+
+            onWindowResize() {
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                
+                this.camera.aspect = width / height;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(width, height);
+                
+                // Update camera position when window is resized
+                this.updateCameraPosition();
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                this.updatePlayer();
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // Start the game
+        window.onload = () => {
+            window.game = new Game();
+        };
+
+        function startGame() {
+            if (window.game) {
+                // Hide the game overlay first
+                const gameOverlay = document.getElementById('gameOverlay');
+                if (gameOverlay) {
+                    gameOverlay.style.display = 'none';
+                }
+                
+                // Start game
+                window.game.setDifficulty();
+                window.game.restartGame();
+            } else {
+                console.error('Game not initialized');
+            }
+        }
+
+        // Add event listener for start button
+        document.addEventListener('DOMContentLoaded', () => {
+            const startBtn = document.querySelector('button[onclick="startGame()"]');
+            if (startBtn) startBtn.addEventListener('click', () => startGame());
+        });
+    </script>
+</body>
+</html> 

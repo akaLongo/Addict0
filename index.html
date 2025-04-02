@@ -319,6 +319,26 @@
         .copyright a:hover {
             color: #ffffff;
         }
+
+        .difficulty-scores {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 15px 0;
+            font-size: 16px;
+            color: #b0bec5;
+        }
+
+        .difficulty-scores div {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .difficulty-scores span {
+            color: #ff1744;
+            font-weight: 600;
+        }
     </style>
     <!-- 
         Addict 0 - Competitive Gaming Platform
@@ -357,22 +377,16 @@
         </div>
 
         <div class="game-grid">
-            <a href="flappybird.html" class="game-card">
-                <h2 class="game-title">Flappy Bird</h2>
-                <p class="game-description">Navigate through pipes in this classic arcade challenge. Test your reflexes and aim for the high score!</p>
-                <div class="game-score" id="flappy-high-score"></div>
-                <div class="play-now-btn">Play Now</div>
+            <a href="tunnel.html" class="game-card">
+                <h2>Tunnel Runner</h2>
             </a>
-
             <a href="flight.html" class="game-card">
-                <h2 class="game-title">Flight Combat</h2>
-                <p class="game-description">Take to the skies in this retro-inspired flight combat game! Shoot down balloons and become the ultimate pilot!</p>
-                <div class="game-score" id="flight-high-score"></div>
-                <div class="play-now-btn">Play Now</div>
+                <h2>Flight Combat</h2>
+            </a>
+            <a href="maze.html" class="game-card">
+                <h2>Maze Runner</h2>
             </a>
         </div>
-
-        <a href="highscores.html" class="high-scores-btn">View High Scores</a>
     </div>
 
     <div class="copyright">
@@ -410,7 +424,9 @@
                 this.users[username] = {
                     password: password,
                     flappyHighScore: 0,
-                    flightHighScore: 0,
+                    flightHighScore_easy: 0,
+                    flightHighScore_hard: 0,
+                    flightHighScore_extreme: 0,
                     gamesPlayed: 0,
                     balloonsHit: 0
                 };
@@ -442,7 +458,9 @@
                 const usernameDisplay = document.getElementById('username-display');
                 const totalScore = document.getElementById('total-score');
                 const flappyHighScore = document.getElementById('flappy-high-score');
-                const flightHighScore = document.getElementById('flight-high-score');
+                const flightEasyScore = document.getElementById('flight-easy-score');
+                const flightHardScore = document.getElementById('flight-hard-score');
+                const flightExtremeScore = document.getElementById('flight-extreme-score');
 
                 if (this.currentUser) {
                     userInfo.style.display = 'block';
@@ -450,16 +468,23 @@
                     usernameDisplay.textContent = this.currentUser;
 
                     const user = this.users[this.currentUser];
-                    const total = (user.flappyHighScore || 0) + (user.flightHighScore || 0);
+                    const total = (user.flappyHighScore || 0) + 
+                                (user.flightHighScore_easy || 0) + 
+                                (user.flightHighScore_hard || 0) + 
+                                (user.flightHighScore_extreme || 0);
                     totalScore.textContent = total;
 
                     flappyHighScore.textContent = `High Score: ${user.flappyHighScore || 0}`;
-                    flightHighScore.textContent = `High Score: ${user.flightHighScore || 0}`;
+                    flightEasyScore.textContent = user.flightHighScore_easy || 0;
+                    flightHardScore.textContent = user.flightHighScore_hard || 0;
+                    flightExtremeScore.textContent = user.flightHighScore_extreme || 0;
                 } else {
                     userInfo.style.display = 'none';
                     loginForm.style.display = 'block';
                     flappyHighScore.textContent = '';
-                    flightHighScore.textContent = '';
+                    flightEasyScore.textContent = '0';
+                    flightHardScore.textContent = '0';
+                    flightExtremeScore.textContent = '0';
                 }
             }
         }
